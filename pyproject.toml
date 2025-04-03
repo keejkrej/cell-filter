@@ -5,13 +5,21 @@ build-backend = "hatchling.build"
 [project]
 name = "cell-counter"
 version = "0.1.0"
-description = "A tool for counting cells in images"
-requires-python = ">=3.8"
-dependencies = [
-    "numpy",
-    "opencv-python",
-    "torch",
-    "torchvision",
-    "pillow",
-    "scikit-learn",
+description = "A tool for counting cells in microscopy images"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"},
 ]
+dependencies = [
+    "numpy>=1.24.0",
+    "scikit-image>=0.20.0",
+    "matplotlib>=3.7.0",
+]
+requires-python = ">=3.8"
+readme = "README.md"
+license = {text = "MIT"}
+
+[project.scripts]
+cell-counter = "cell_counter.cli.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cell_counter"]
