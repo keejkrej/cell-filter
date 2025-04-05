@@ -18,7 +18,8 @@ class CellCounterDataset(Dataset):
         image_dir: str,
         transform: Optional[transforms.Compose] = None,
         label_to_idx: Optional[Dict[str, int]] = None,
-        image_size: Tuple[int, int] = (224, 224)
+        image_size: Tuple[int, int] = (224, 224),
+        model_size: Tuple[int, int] = (224, 224)
     ):
         """
         Initialize the dataset.
@@ -29,9 +30,11 @@ class CellCounterDataset(Dataset):
             transform (Optional[transforms.Compose]): Transformations to apply to images
             label_to_idx (Optional[Dict[str, int]]): Mapping from label strings to indices
             image_size (Tuple[int, int]): Size to resize images to (height, width)
+            model_size (Tuple[int, int]): Size expected by the model (height, width)
         """
         self.image_dir = image_dir
         self.image_size = image_size
+        self.model_size = model_size
         
         # Default transform if none provided
         if transform is None:
@@ -98,7 +101,8 @@ def create_dataloader(
     num_workers: int = 4,
     transform: Optional[transforms.Compose] = None,
     label_to_idx: Optional[Dict[str, int]] = None,
-    image_size: Tuple[int, int] = (224, 224)
+    image_size: Tuple[int, int] = (64, 64),
+    model_size: Tuple[int, int] = (224, 224)
 ) -> Tuple[DataLoader, Dict[str, int], Dict[int, str]]:
     """
     Create a DataLoader for the cell counting dataset.
@@ -112,6 +116,7 @@ def create_dataloader(
         transform (Optional[transforms.Compose]): Transformations to apply to images
         label_to_idx (Optional[Dict[str, int]]): Mapping from label strings to indices
         image_size (Tuple[int, int]): Size to resize images to (height, width)
+        model_size (Tuple[int, int]): Size expected by the model (height, width)
         
     Returns:
         Tuple[DataLoader, Dict[str, int], Dict[int, str]]: DataLoader and label mappings
@@ -121,7 +126,8 @@ def create_dataloader(
         image_dir=image_dir,
         transform=transform,
         label_to_idx=label_to_idx,
-        image_size=image_size
+        image_size=image_size,
+        model_size=model_size
     )
     
     dataloader = DataLoader(
