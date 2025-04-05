@@ -21,25 +21,27 @@ class CellGenerator:
         self.nuclei_path = nuclei_path
         self.cyto_path = cyto_path
         
-        self._load_images()
+        self._load_patterns()
         self._process_patterns()
-    
-    def _load_images(self):
-        """Load all image stacks."""
-        self.patterns = img_as_ubyte(imread(self.patterns_path))
         
+        # Initialize frame storage
+        self.frame_nuclei = None
+        self.frame_cyto = None
+        
+        # Load frame counts
         if self.nuclei_path:
-            self.nuclei_stack = imread(self.nuclei_path)
-            self.n_frames = len(self.nuclei_stack)
+            self.n_frames_nuclei = len(imread(self.nuclei_path))
         else:
-            self.nuclei_stack = None
-        
+            self.n_frames_nuclei = 0
+            
         if self.cyto_path:
-            self.cyto_stack = imread(self.cyto_path)
-            if self.nuclei_stack is None:
-                self.n_frames = len(self.cyto_stack)
+            self.n_frames_cyto = len(imread(self.cyto_path))
         else:
-            self.cyto_stack = None
+            self.n_frames_cyto = 0
+    
+    def _load_patterns(self):
+        """Load the patterns image."""
+        self.patterns = img_as_ubyte(imread(self.patterns_path))
     
     def _process_patterns(self):
         """Process pattern image to extract contours and their bounding boxes."""
@@ -72,26 +74,56 @@ class CellGenerator:
         
         self.n_contours = len(self.contours)
     
-    def _extract_region(self, stack, contour_idx, frame_idx, use_mask=False):
+    def load_frame_nuclei(self, frame_idx):
         """
-        Extract a region from the given stack using the specified contour.
+        Load a specific frame from the nuclei stack into memory.
         
         Args:
-            stack (numpy.ndarray): Image stack to extract from
+            frame_idx (int): Frame index to load
+        """
+        if not self.nuclei_path:
+            raise ValueError("No nuclei stack loaded")
+            
+        if frame_idx >= self.n_frames_nuclei:
+            raise ValueError(f"Frame index {frame_idx} out of range (0-{self.n_frames_nuclei-1})")
+            
+        stack = imread(self.nuclei_path)
+        self.frame_nuclei = img_as_ubyte(stack[frame_idx])
+    
+    def load_frame_cyto(self, frame_idx):
+        """
+        Load a specific frame from the cytoplasm stack into memory.
+        
+        Args:
+            frame_idx (int): Frame index to load
+        """
+        if not self.cyto_path:
+            raise ValueError("No cytoplasm stack loaded")
+            
+        if frame_idx >= self.n_frames_cyto:
+            raise ValueError(f"Frame index {frame_idx} out of range (0-{self.n_frames_cyto-1})")
+            
+        stack = imread(self.cyto_path)
+        self.frame_cyto = img_as_ubyte(stack[frame_idx])
+    
+    def _extract_region(self, frame, contour_idx, use_mask=False):
+        """
+        Extract a region from the given frame using the specified contour.
+        
+        Args:
+            frame (numpy.ndarray): Frame to extract from
             contour_idx (int): Index of the contour to use
-            frame_idx (int): Frame index in the stack
             use_mask (bool): Whether to apply the mask to the region
             
         Returns:
             numpy.ndarray: The extracted region
         """
-        if stack is None:
-            raise ValueError("No stack loaded")
+        if frame is None:
+            raise ValueError("No frame provided")
             
         contour = self.contours[contour_idx]
         x, y, w, h = self.bounding_boxes[contour_idx]
         
-        frame = img_as_ubyte(stack[frame_idx])
         crop = frame[y:y+h, x:x+w]
         
         if use_mask:
@@ -102,30 +134,32 @@ class CellGenerator:
         
         return crop
     
-    def extract_nuclei(self, contour_idx, frame_idx, use_mask=False):
+    def extract_nuclei(self, contour_idx, use_mask=False):
         """
-        Extract nuclei from the nuclei stack.
+        Extract nuclei from the current nuclei frame.
         
         Args:
             contour_idx (int): Index of the contour to use
-            frame_idx (int): Frame index in the nuclei stack
             use_mask (bool): Whether to apply the mask to the nuclei
             
         Returns:
             numpy.ndarray: The extracted nuclei
         """
-        return self._extract_region(self.nuclei_stack, contour_idx, frame_idx, use_mask)
+        if self.frame_nuclei is None:
+            raise ValueError("No nuclei frame loaded")
+        return self._extract_region(self.frame_nuclei, contour_idx, use_mask)
     
-    def extract_cyto(self, contour_idx, frame_idx, use_mask=False):
+    def extract_cyto(self, contour_idx, use_mask=False):
         """
-        Extract cytoplasm from the cytoplasm stack.
+        Extract cytoplasm from the current cytoplasm frame.
         
         Args:
             contour_idx (int): Index of the contour to use
-            frame_idx (int): Frame index in the cytoplasm stack
             use_mask (bool): Whether to apply the mask to the cytoplasm
             
         Returns:
             numpy.ndarray: The extracted cytoplasm
         """
-        return self._extract_region(self.cyto_stack, contour_idx, frame_idx, use_mask)
+        if self.frame_cyto is None:
+            raise ValueError("No cytoplasm frame loaded")
+        return self._extract_region(self.frame_cyto, contour_idx, use_mask) 

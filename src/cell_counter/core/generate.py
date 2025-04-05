@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 from skimage.io import imsave
 from tqdm import tqdm
-from cell_counter.data.cell_generator import CellGenerator
+from .cell_generator import CellGenerator
 
 def parse_range(range_str):
     """Parse range string into a list of indices."""
@@ -65,24 +65,36 @@ def generate_data(
     generator = CellGenerator(patterns_path, nuclei_path, cyto_path)
     
     # Determine range of frames and contours to process
-    frame_range = parse_range(frames) or range(generator.n_frames)
+    frame_range = parse_range(frames)
     contour_range = parse_range(contours) or range(generator.n_contours)
+    
+    # If no frame range specified, use the appropriate range based on available data
+    if frame_range is None:
+        if nuclei_path and cyto_path:
+            # Use the smaller range if both are available
+            frame_range = range(min(generator.n_frames_nuclei, generator.n_frames_cyto))
+        elif nuclei_path:
+            frame_range = range(generator.n_frames_nuclei)
+        else:
+            frame_range = range(generator.n_frames_cyto)
     
     # Process each frame and contour
     total_images = len(frame_range) * len(contour_range)
     print(f"\nProcessing {total_images} images across {len(frame_range)} frames...")
     
     for frame_idx in frame_range:
-        if frame_idx >= generator.n_frames:
-            print(f"Warning: Frame {frame_idx} is out of range. Skipping...")
-            continue
-            
         # Create frame directory
         frame_dir = output_dir / f"frame_{frame_idx:03d}"
         frame_dir.mkdir(exist_ok=True)
         
         # Create progress bar for this frame
         with tqdm(total=len(contour_range), desc=f"Frame {frame_idx:03d}") as pbar:
+            # Load frames if available
+            if nuclei_path and frame_idx < generator.n_frames_nuclei:
+                generator.load_frame_nuclei(frame_idx)
+            if cyto_path and frame_idx < generator.n_frames_cyto:
+                generator.load_frame_cyto(frame_idx)
+            
             for contour_idx in contour_range:
                 if contour_idx >= generator.n_contours:
                     print(f"Warning: Contour {contour_idx} is out of range. Skipping...")
@@ -90,15 +102,15 @@ def generate_data(
                     
                 try:
                     # Extract and save nuclei if requested
-                    if nuclei_path:
-                        nuclei = generator.extract_nuclei(contour_idx, frame_idx)
+                    if nuclei_path and frame_idx < generator.n_frames_nuclei:
+                        nuclei = generator.extract_nuclei(contour_idx)
                         nuclei_normalized = normalize_intensity(nuclei, min_val=0, max_val=15)
                         nuclei_path = frame_dir / f"nuclei_{frame_idx:03d}_{contour_idx:03d}.png"
                         imsave(nuclei_path, nuclei_normalized)
                     
                     # Extract and save cytoplasm if requested
-                    if cyto_path:
-                        cyto = generator.extract_cyto(contour_idx, frame_idx)
+                    if cyto_path and frame_idx < generator.n_frames_cyto:
+                        cyto = generator.extract_cyto(contour_idx)
                         cyto_normalized = normalize_intensity(cyto, min_val=5, max_val=15)
                         cyto_path = frame_dir / f"cyto_{frame_idx:03d}_{contour_idx:03d}.png"
                         imsave(cyto_path, cyto_normalized)
