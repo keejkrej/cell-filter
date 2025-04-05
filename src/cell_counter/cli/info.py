@@ -27,12 +27,7 @@ import argparse
 import sys
 from pathlib import Path
 
-import cv2
-import matplotlib.pyplot as plt
-import numpy as np
-from skimage import io
-
-from cell_counter.data.cell_generator import CellGenerator
+from ..core.info import get_image_info, show_patterns
 
 
 def parse_args():
@@ -59,45 +54,6 @@ def parse_args():
     return parser.parse_args()
 
 
-def show_patterns(generator):
-    """Show visualization of patterns image and contours/bounding boxes.
-    
-    Args:
-        generator: CellGenerator instance containing patterns image and contours
-    """
-    plt.figure(figsize=(12, 8))
-    
-    # Plot original patterns image
-    plt.subplot(1, 2, 1)
-    plt.imshow(generator.patterns, cmap='gray')
-    plt.title('Original Patterns Image')
-    plt.axis('off')
-
-    # Plot contours and bounding boxes on black background
-    plt.subplot(1, 2, 2)
-    vis_img = np.zeros_like(generator.patterns, dtype=np.uint8)
-    vis_img = cv2.cvtColor(vis_img, cv2.COLOR_GRAY2RGB)
-    
-    # Draw contours in green
-    cv2.drawContours(vis_img, generator.contours, -1, (0, 255, 0), 2)
-    
-    # Draw bounding boxes in red and add index numbers
-    for idx, bbox in enumerate(generator.bounding_boxes):
-        x, y, w, h = bbox
-        # Draw bounding box
-        cv2.rectangle(vis_img, (x, y), (x + w, y + h), (255, 0, 0), 2)
-        # Add index number
-        cv2.putText(vis_img, str(idx), (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 
-                    0.5, (255, 255, 255), 1)
-    
-    plt.imshow(vis_img)
-    plt.title('Contours (green) and Bounding Boxes (red) with Indices')
-    plt.axis('off')
-
-    plt.tight_layout()
-    plt.show()
-
-
 def main():
     """Main function."""
     args = parse_args()
@@ -117,39 +73,35 @@ def main():
         print(f"Error: Cytoplasm file not found: {args.cyto}")
         sys.exit(1)
 
-    # Initialize generator
-    generator = CellGenerator(
-        patterns_path=args.patterns,
-        nuclei_path=args.nuclei,
-        cyto_path=args.cyto,
-    )
+    # Get image info
+    info, generator = get_image_info(args.patterns, args.nuclei, args.cyto)
 
     # Print patterns image info
     print("\nPatterns Image:")
-    print(f"  Path: {args.patterns}")
-    print(f"  Dimensions: {generator.patterns.shape}")
+    print(f"  Path: {info['patterns']['path']}")
+    print(f"  Dimensions: {info['patterns']['dimensions']}")
 
     # Print nuclei stack info if provided
-    if args.nuclei:
+    if 'nuclei' in info:
         print("\nNuclei Stack:")
-        print(f"  Path: {args.nuclei}")
-        print(f"  Number of frames: {generator.n_frames}")
-        print(f"  Dimensions per frame: {generator.nuclei_stack[0].shape}")
+        print(f"  Path: {info['nuclei']['path']}")
+        print(f"  Number of frames: {info['nuclei']['num_frames']}")
+        print(f"  Dimensions per frame: {info['nuclei']['dimensions_per_frame']}")
 
     # Print cytoplasm stack info if provided
-    if args.cyto:
+    if 'cyto' in info:
         print("\nCytoplasm Stack:")
-        print(f"  Path: {args.cyto}")
-        if not args.nuclei:  # Only print frames if nuclei not provided
-            print(f"  Number of frames: {generator.n_frames}")
-        print(f"  Dimensions per frame: {generator.cyto_stack[0].shape}")
+        print(f"  Path: {info['cyto']['path']}")
+        if info['cyto']['num_frames'] is not None:  # Only print frames if nuclei not provided
+            print(f"  Number of frames: {info['cyto']['num_frames']}")
+        print(f"  Dimensions per frame: {info['cyto']['dimensions_per_frame']}")
 
     # Print contours info
     print("\nContours:")
-    print(f"  Total contours found: {len(generator.contours)}")
-    print(f"  Contours after filtering: {len(generator.contours)}")
-    if len(generator.contours) < len(generator.contours):
-        print(f"  Contours filtered out: {len(generator.contours) - len(generator.contours)}")
+    print(f"  Total contours found: {info['contours']['total_contours']}")
+    print(f"  Contours after filtering: {info['contours']['contours_after_filtering']}")
+    if info['contours']['contours_filtered_out'] > 0:
+        print(f"  Contours filtered out: {info['contours']['contours_filtered_out']}")
 
     # Show visualization
     show_patterns(generator)
