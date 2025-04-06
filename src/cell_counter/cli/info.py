@@ -17,15 +17,17 @@ Usage:
 """
 
 import warnings
-warnings.filterwarnings('ignore', message='.*Failed to create wl_display.*')
-warnings.filterwarnings('ignore', message='.*Could not load the Qt platform plugin.*')
-
+import platform
 import os
-os.environ['QT_QPA_PLATFORM'] = 'xcb'
-
 import argparse
 import sys
 from pathlib import Path
+
+# Only filter specific Qt warnings on Linux
+if platform.system() == 'Linux':
+    warnings.filterwarnings('ignore', message='Failed to create wl_display')
+    warnings.filterwarnings('ignore', message='Could not load the Qt platform plugin')
+    os.environ['QT_QPA_PLATFORM'] = 'xcb'
 
 from ..core.info import get_image_info, show_patterns
 
@@ -92,8 +94,7 @@ def main():
     if 'cyto' in info:
         print("\nCytoplasm Stack:")
         print(f"  Path: {info['cyto']['path']}")
-        if info['cyto']['num_frames'] is not None:  # Only print frames if nuclei not provided
-            print(f"  Number of frames: {info['cyto']['num_frames']}")
+        print(f"  Number of frames: {info['cyto']['num_frames']}")
         print(f"  Dimensions per frame: {info['cyto']['dimensions_per_frame']}")
 
     # Print contours info

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from skimage import io
 
-from ..data.cell_generator import CellGenerator
+from ..core.cell_generator import CellGenerator
 
 
 def show_patterns(generator):
@@ -78,23 +78,23 @@ def get_image_info(patterns_path, nuclei_path=None, cyto_path=None):
     if nuclei_path:
         info['nuclei'] = {
             'path': nuclei_path,
-            'num_frames': generator.n_frames,
-            'dimensions_per_frame': generator.nuclei_stack[0].shape
+            'num_frames': generator.n_frames_nuclei,
+            'dimensions_per_frame': generator.patterns.shape  # Use patterns shape as reference
         }
 
     # Add cytoplasm stack info if provided
     if cyto_path:
         info['cyto'] = {
             'path': cyto_path,
-            'num_frames': generator.n_frames if not nuclei_path else None,
-            'dimensions_per_frame': generator.cyto_stack[0].shape
+            'num_frames': generator.n_frames_cyto,
+            'dimensions_per_frame': generator.patterns.shape  # Use patterns shape as reference
         }
 
     # Add contours info
     info['contours'] = {
         'total_contours': len(generator.contours),
         'contours_after_filtering': len(generator.contours),
-        'contours_filtered_out': len(generator.contours) - len(generator.contours) if len(generator.contours) < len(generator.contours) else 0
+        'contours_filtered_out': 0  # Since we're not currently filtering contours
     }
 
     return info, generator 

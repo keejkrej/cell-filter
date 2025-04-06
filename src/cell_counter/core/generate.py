@@ -104,14 +104,14 @@ def generate_data(
                     # Extract and save nuclei if requested
                     if nuclei_path and frame_idx < generator.n_frames_nuclei:
                         nuclei = generator.extract_nuclei(contour_idx)
-                        nuclei_normalized = normalize_intensity(nuclei, min_val=0, max_val=15)
+                        nuclei_normalized = normalize_intensity(nuclei, min_val=4, max_val=15)
                         nuclei_path = frame_dir / f"nuclei_{frame_idx:03d}_{contour_idx:03d}.png"
                         imsave(nuclei_path, nuclei_normalized)
                     
                     # Extract and save cytoplasm if requested
                     if cyto_path and frame_idx < generator.n_frames_cyto:
                         cyto = generator.extract_cyto(contour_idx)
-                        cyto_normalized = normalize_intensity(cyto, min_val=5, max_val=15)
+                        cyto_normalized = normalize_intensity(cyto, min_val=4, max_val=15)
                         cyto_path = frame_dir / f"cyto_{frame_idx:03d}_{contour_idx:03d}.png"
                         imsave(cyto_path, cyto_normalized)
                     
