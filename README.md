@@ -72,17 +72,46 @@ Optional arguments:
 Extract valid frames for each contour based on analysis results:
 
 ```bash
+# Extract nuclei frames
 python -m cell_counter.cli.extract --patterns <patterns_file> --nuclei <nuclei_file> --time-series <time_series_file> --output <output_folder>
+
+# Extract cytoplasm frames
+python -m cell_counter.cli.extract --patterns <patterns_file> --cyto <cyto_file> --time-series <time_series_file> --output <output_folder>
+
+# Extract both nuclei and cytoplasm frames
+python -m cell_counter.cli.extract --patterns <patterns_file> --nuclei <nuclei_file> --cyto <cyto_file> --time-series <time_series_file> --output <output_folder>
 ```
 
 Optional arguments:
-- `--min-frames`: Minimum number of valid frames required (default: 10)
+- `--min-frames`: Minimum number of valid frames required (default: 20)
 - `--grid-size`: Size of the grid for snapping pattern centers (default: 20). A larger value creates a coarser grid, while a smaller value creates a finer grid.
 
 Example:
 ```bash
+# Extract nuclei frames with custom parameters
 python -m cell_counter.cli.extract --patterns /path/to/patterns.tif --nuclei /path/to/nuclei.tif --time-series results.json --output extracted_frames --min-frames 20 --grid-size 25
+
+# Extract cytoplasm frames with custom parameters
+python -m cell_counter.cli.extract --patterns /path/to/patterns.tif --cyto /path/to/cyto.tif --time-series results.json --output extracted_frames --min-frames 20 --grid-size 25
 ```
+
+The extract command creates a directory structure containing valid frames that meet the specified criteria:
+```
+output_folder/
+  nuclei/
+    contour_000.tif
+    contour_001.tif
+    ...
+  cyto/
+    contour_000.tif
+    contour_001.tif
+    ...
+```
+
+Where:
+- `nuclei/` and `cyto/` directories contain the extracted frames for each type
+- `contour_XXX.tif`: TIFF stack containing valid frames for that contour
+- Each TIFF stack contains frames that meet the validity criteria (correct nuclei count, sufficient intensity, etc.)
 
 ### Test Cellpose on Single Contour
 
@@ -153,24 +182,22 @@ Example time series output structure:
 The extract command creates a directory structure containing valid frames that meet the specified criteria:
 ```
 output_folder/
-  contour_000/
-    frame_005.tif
-    frame_006.tif
-    frame_007.tif
-  contour_001/
-    frame_010.tif
-    frame_011.tif
-    frame_012.tif
+  nuclei/
+    contour_000.tif
+    contour_001.tif
+    ...
+  cyto/
+    contour_000.tif
+    contour_001.tif
+    ...
 ```
 
 Where:
-- `contour_XXX`: Directory for each contour that has valid frames
-- `frame_XXX.tif`: Image of valid frames for that contour
-
-Only frames that meet the validity criteria (correct nuclei count, sufficient intensity, etc.) are included in the output.
+- `nuclei/` and `cyto/` directories contain the extracted frames for each type
+- `contour_XXX.tif`: TIFF stack containing valid frames for that contour
+- Each TIFF stack contains frames that meet the validity criteria (correct nuclei count, sufficient intensity, etc.)
 
 ## Development
 
 This project uses:
-- `black` for code formatting
-- `isort` for import sorting
+- `black`

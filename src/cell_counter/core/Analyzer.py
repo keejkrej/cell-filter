@@ -3,14 +3,9 @@ Core analyzer functionality for cell-counter.
 """
 
 import json
-from pathlib import Path
-from typing import Dict, List, Optional, Set
-from matplotlib import pyplot as plt
-import numpy as np
-from skimage import io
-from tqdm import tqdm
+from typing import Dict, List, Optional
 from .CellGenerator import CellGenerator
-from .counters import Counter, CellposeCounter, SimpleCounter
+from .counters import CellposeCounter, SimpleCounter
 
 class Contours:
     """Class to manage the state of all contours."""
@@ -147,7 +142,8 @@ class Analyzer:
         }
         
         print(f"\nAnalyzing {self.generator.n_frames_nuclei} frames...")
-        for frame_idx in tqdm(range(self.generator.n_frames_nuclei)):
+        for frame_idx in range(self.generator.n_frames_nuclei):
+            print(f"Processing frame {frame_idx}/{self.generator.n_frames_nuclei}")
             # Load current frame
             self.generator.load_frame_nuclei(frame_idx)
             
@@ -168,13 +164,11 @@ class Analyzer:
                 continue
             
             # Count nuclei for all contours in this frame
-            print(f"\nCounting nuclei in frame {frame_idx}...")
             try:
                 counts = self.counter.count_nuclei(nuclei_list)
             except Exception as e:
                 print(f"\nError counting nuclei in frame {frame_idx}: {str(e)}")
                 continue
-            print(f"Finished counting nuclei in frame {frame_idx}")
             
             # Track which contours had exactly wanted nuclei
             saved_contours = []

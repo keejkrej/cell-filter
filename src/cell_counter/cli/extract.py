@@ -6,14 +6,26 @@ Extract valid frames command for cell-counter.
 Usage:
     After installing the package with `pip install -e .`, run:
     
-    # Basic usage
+    # Basic usage (extracts patterns by default)
+    python -m cell_counter.cli.extract --patterns <patterns_path> --time-series <time_series_path> --output <output_dir>
+    
+    # Extract patterns with nuclei
     python -m cell_counter.cli.extract --patterns <patterns_path> --nuclei <nuclei_path> --time-series <time_series_path> --output <output_dir>
     
+    # Extract patterns with cytoplasm
+    python -m cell_counter.cli.extract --patterns <patterns_path> --cyto <cyto_path> --time-series <time_series_path> --output <output_dir>
+    
+    # Extract patterns with both nuclei and cytoplasm
+    python -m cell_counter.cli.extract --patterns <patterns_path> --nuclei <nuclei_path> --cyto <cyto_path> --time-series <time_series_path> --output <output_dir>
+    
     # With custom parameters
-    python -m cell_counter.cli.extract --patterns <patterns_path> --nuclei <nuclei_path> --time-series <time_series_path> --output <output_dir> --min-frames 20
+    python -m cell_counter.cli.extract --patterns <patterns_path> --time-series <time_series_path> --output <output_dir> --min-frames 20
     
     Optional arguments:
-    --min-frames: Minimum number of valid frames required for extraction (default: 10)
+    --min-frames: Minimum number of valid frames required for extraction (default: 20)
+    --grid-size: Size of the grid for snapping pattern centers (default: 20)
+    --nuclei: Path to the nuclei image file (optional)
+    --cyto: Path to the cytoplasm image file (optional)
 """
 
 import argparse
@@ -36,8 +48,12 @@ def parse_args():
     parser.add_argument(
         "--nuclei",
         type=str,
-        required=True,
         help="Path to the nuclei image file",
+    )
+    parser.add_argument(
+        "--cyto",
+        type=str,
+        help="Path to the cytoplasm image file",
     )
     parser.add_argument(
         "--time-series",
@@ -54,8 +70,8 @@ def parse_args():
     parser.add_argument(
         "--min-frames",
         type=int,
-        default=10,
-        help="Minimum number of valid frames required (default: 10)",
+        default=20,
+        help="Minimum number of valid frames required (default: 20)",
     )
     parser.add_argument(
         "--grid-size",
@@ -74,9 +90,14 @@ def main():
         print(f"Error: Patterns file not found: {args.patterns}")
         sys.exit(1)
 
-    # Check if nuclei file exists
-    if not os.path.exists(args.nuclei):
+    # Check if nuclei file exists if provided
+    if args.nuclei and not os.path.exists(args.nuclei):
         print(f"Error: Nuclei file not found: {args.nuclei}")
+        sys.exit(1)
+
+    # Check if cytoplasm file exists if provided
+    if args.cyto and not os.path.exists(args.cyto):
+        print(f"Error: Cytoplasm file not found: {args.cyto}")
         sys.exit(1)
 
     # Check if time series file exists
@@ -85,21 +106,41 @@ def main():
         sys.exit(1)
 
     # Create output directory if it doesn't exist
-    os.makedirs(args.output, exist_ok=True)
+    output_dir = Path(args.output)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Initialize extractor
+    # Initialize Extractor
     extractor = Extractor(
         patterns_path=args.patterns,
         nuclei_path=args.nuclei,
+        cyto_path=args.cyto,
         grid_size=args.grid_size
     )
 
-    # Extract valid frames
-    extractor.extract_valid_frames(
+    # Always extract patterns
+    extractor.extract_patterns(
         time_series_path=args.time_series,
-        output_dir=args.output,
+        output_dir=output_dir / "patterns",
         min_frames=args.min_frames
     )
 
-if __name__ == '__main__':
+    # Extract nuclei if provided
+    if args.nuclei:
+        extractor.extract_valid_frames(
+            time_series_path=args.time_series,
+            output_dir=output_dir / "nuclei",
+            min_frames=args.min_frames,
+            image_type="nuclei"
+        )
+    
+    # Extract cytoplasm if provided
+    if args.cyto:
+        extractor.extract_valid_frames(
+            time_series_path=args.time_series,
+            output_dir=output_dir / "cyto",
+            min_frames=args.min_frames,
+            image_type="cyto"
+        )
+
+if __name__ == "__main__":
     main() 

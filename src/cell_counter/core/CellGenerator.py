@@ -34,15 +34,19 @@ class CellGenerator:
         self.frame_nuclei = None
         self.frame_cyto = None
         
-        # Load frame counts
+        # Load and cache stacks
         if self.nuclei_path:
-            self.n_frames_nuclei = len(imread(self.nuclei_path))
+            self.nuclei_stack = imread(self.nuclei_path)
+            self.n_frames_nuclei = len(self.nuclei_stack)
         else:
+            self.nuclei_stack = None
             self.n_frames_nuclei = 0
             
         if self.cyto_path:
-            self.n_frames_cyto = len(imread(self.cyto_path))
+            self.cyto_stack = imread(self.cyto_path)
+            self.n_frames_cyto = len(self.cyto_stack)
         else:
+            self.cyto_stack = None
             self.n_frames_cyto = 0
     
     def _load_patterns(self):
@@ -118,14 +122,12 @@ class CellGenerator:
         Args:
             frame_idx (int): Frame index to load
         """
-        if not self.nuclei_path:
+        if self.nuclei_stack is None:
             raise ValueError("No nuclei stack loaded")
-            
+
         if frame_idx >= self.n_frames_nuclei:
             raise ValueError(f"Frame index {frame_idx} out of range (0-{self.n_frames_nuclei-1})")
-            
-        stack = imread(self.nuclei_path)
-        self.frame_nuclei = img_as_ubyte(stack[frame_idx])
+        self.frame_nuclei = img_as_ubyte(self.nuclei_stack[frame_idx])
     
     def load_frame_cyto(self, frame_idx):
         """
@@ -134,23 +136,21 @@ class CellGenerator:
         Args:
             frame_idx (int): Frame index to load
         """
-        if not self.cyto_path:
+        if self.cyto_stack is None:
             raise ValueError("No cytoplasm stack loaded")
             
         if frame_idx >= self.n_frames_cyto:
             raise ValueError(f"Frame index {frame_idx} out of range (0-{self.n_frames_cyto-1})")
             
-        stack = imread(self.cyto_path)
-        self.frame_cyto = img_as_ubyte(stack[frame_idx])
+        self.frame_cyto = img_as_ubyte(self.cyto_stack[frame_idx])
     
-    def _extract_region(self, frame, contour_idx, use_mask=False):
+    def _extract_region(self, frame, contour_idx):
         """
         Extract a region from the given frame using the specified contour.
         
         Args:
             frame (numpy.ndarray): Frame to extract from
             contour_idx (int): Index of the contour to use
-            use_mask (bool): Whether to apply the mask to the region
             
         Returns:
             numpy.ndarray: The extracted region
@@ -161,23 +161,14 @@ class CellGenerator:
         contour = self.contours[contour_idx]
         x, y, w, h = self.bounding_boxes[contour_idx]
         
-        crop = frame[y:y+h, x:x+w]
-        
-        if use_mask:
-            mask = np.zeros_like(self.patterns, dtype=np.uint8)
-            cv2.drawContours(mask, [contour], -1, (255), thickness=cv2.FILLED)
-            mask_crop = mask[y:y+h, x:x+w]
-            return cv2.bitwise_and(mask_crop, crop)
-        
-        return crop
+        return frame[y:y+h, x:x+w]
     
-    def extract_nuclei(self, contour_idx, use_mask=False, threshold=None):
+    def extract_nuclei(self, contour_idx, threshold=None):
         """
         Extract nuclei from the current nuclei frame.
         
         Args:
             contour_idx (int): Index of the contour to use
-            use_mask (bool): Whether to apply the mask to the nuclei
             threshold (float, optional): Threshold value for binarization. If None, uses Otsu's method.
             
         Returns:
@@ -185,18 +176,18 @@ class CellGenerator:
         """
         if self.frame_nuclei is None:
             raise ValueError("No nuclei frame loaded")
-        region = self._extract_region(self.frame_nuclei, contour_idx, use_mask)
+            
+        region = self._extract_region(self.frame_nuclei, contour_idx)
         if threshold is not None:
             _, region = cv2.threshold(region, threshold, 255, cv2.THRESH_BINARY)
         return region
     
-    def extract_cyto(self, contour_idx, use_mask=False, threshold=None):
+    def extract_cyto(self, contour_idx, threshold=None):
         """
         Extract cytoplasm from the current cytoplasm frame.
         
         Args:
             contour_idx (int): Index of the contour to use
-            use_mask (bool): Whether to apply the mask to the cytoplasm
             threshold (float, optional): Threshold value for binarization. If None, uses Otsu's method.
             
         Returns:
@@ -204,7 +195,24 @@ class CellGenerator:
         """
         if self.frame_cyto is None:
             raise ValueError("No cytoplasm frame loaded")
-        region = self._extract_region(self.frame_cyto, contour_idx, use_mask)
+            
+        region = self._extract_region(self.frame_cyto, contour_idx)
+        if threshold is not None:
+            _, region = cv2.threshold(region, threshold, 255, cv2.THRESH_BINARY)
+        return region
+
+    def extract_pattern(self, contour_idx, threshold=None):
+        """
+        Extract pattern region for the specified contour.
+        
+        Args:
+            contour_idx (int): Index of the contour to use
+            threshold (float, optional): Threshold value for binarization. If None, uses Otsu's method.
+            
+        Returns:
+            numpy.ndarray: The extracted pattern region
+        """
+        region = self._extract_region(self.patterns, contour_idx)
         if threshold is not None:
             _, region = cv2.threshold(region, threshold, 255, cv2.THRESH_BINARY)
         return region 
