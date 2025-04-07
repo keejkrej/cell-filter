@@ -63,7 +63,6 @@ Optional arguments:
 - `--diameter`: Expected diameter of cells in pixels (default: 15)
 - `--channels`: Channel indices for Cellpose (default: "0,0")
 - `--model`: Type of Cellpose model to use (default: "cyto3")
-- `--min-intensity`: Minimum average intensity for valid regions (default: 10)
 - `--grid-size`: Size of the grid for snapping pattern centers (default: 20)
 - `--threshold`: Threshold value for nuclei extraction (optional, if not provided uses Otsu's method)
 
