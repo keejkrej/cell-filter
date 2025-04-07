@@ -22,15 +22,13 @@ import os
 import argparse
 import sys
 from pathlib import Path
+from ..core.InfoDisplayer import InfoDisplayer
 
 # Only filter specific Qt warnings on Linux
 if platform.system() == 'Linux':
     warnings.filterwarnings('ignore', message='Failed to create wl_display')
     warnings.filterwarnings('ignore', message='Could not load the Qt platform plugin')
     os.environ['QT_QPA_PLATFORM'] = 'xcb'
-
-from ..core.info import get_image_info, show_patterns
-
 
 def parse_args():
     """Parse command line arguments."""
@@ -53,8 +51,13 @@ def parse_args():
         type=str,
         help="Path to the cytoplasm image file",
     )
+    parser.add_argument(
+        "--grid-size",
+        type=int,
+        default=20,
+        help="Size of the grid for snapping pattern centers (default: 20)",
+    )
     return parser.parse_args()
-
 
 def main():
     """Main function."""
@@ -75,38 +78,46 @@ def main():
         print(f"Error: Cytoplasm file not found: {args.cyto}")
         sys.exit(1)
 
-    # Get image info
-    info, generator = get_image_info(args.patterns, args.nuclei, args.cyto)
+    # Initialize InfoDisplayer
+    info_displayer = InfoDisplayer(
+        patterns_path=args.patterns,
+        nuclei_path=args.nuclei,
+        cyto_path=args.cyto,
+        grid_size=args.grid_size
+    )
+
+    # Get and display info
+    data = info_displayer.get_info()
 
     # Print patterns image info
     print("\nPatterns Image:")
-    print(f"  Path: {info['patterns']['path']}")
-    print(f"  Dimensions: {info['patterns']['dimensions']}")
+    print(f"  Path: {data['patterns']['path']}")
+    print(f"  Dimensions: {data['patterns']['dimensions']}")
+    print(f"  Grid size: {args.grid_size}x{args.grid_size}")
 
     # Print nuclei stack info if provided
-    if 'nuclei' in info:
+    if 'nuclei' in data:
         print("\nNuclei Stack:")
-        print(f"  Path: {info['nuclei']['path']}")
-        print(f"  Number of frames: {info['nuclei']['num_frames']}")
-        print(f"  Dimensions per frame: {info['nuclei']['dimensions_per_frame']}")
+        print(f"  Path: {data['nuclei']['path']}")
+        print(f"  Number of frames: {data['nuclei']['num_frames']}")
+        print(f"  Dimensions per frame: {data['nuclei']['dimensions_per_frame']}")
 
     # Print cytoplasm stack info if provided
-    if 'cyto' in info:
+    if 'cyto' in data:
         print("\nCytoplasm Stack:")
-        print(f"  Path: {info['cyto']['path']}")
-        print(f"  Number of frames: {info['cyto']['num_frames']}")
-        print(f"  Dimensions per frame: {info['cyto']['dimensions_per_frame']}")
+        print(f"  Path: {data['cyto']['path']}")
+        print(f"  Number of frames: {data['cyto']['num_frames']}")
+        print(f"  Dimensions per frame: {data['cyto']['dimensions_per_frame']}")
 
     # Print contours info
     print("\nContours:")
-    print(f"  Total contours found: {info['contours']['total_contours']}")
-    print(f"  Contours after filtering: {info['contours']['contours_after_filtering']}")
-    if info['contours']['contours_filtered_out'] > 0:
-        print(f"  Contours filtered out: {info['contours']['contours_filtered_out']}")
+    print(f"  Total contours found: {data['contours']['total_contours']}")
+    print(f"  Contours after filtering: {data['contours']['contours_after_filtering']}")
+    if data['contours']['contours_filtered_out'] > 0:
+        print(f"  Contours filtered out: {data['contours']['contours_filtered_out']}")
 
-    # Show visualization
-    show_patterns(generator)
+    # Show patterns visualization
+    info_displayer.show_patterns()
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main() 
