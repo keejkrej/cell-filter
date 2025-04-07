@@ -133,6 +133,22 @@ Additional options:
 - `--grid-size`: Size of the grid for snapping pattern centers (default: 20)
 - `--threshold`: Threshold value for nuclei extraction (optional, if not provided uses Otsu's method)
 
+#### Overlay Command
+
+Create RGB overlays from two grayscale images:
+
+```bash
+# Basic usage (first image in red, second in green)
+python -m cell_counter.cli.overlay --img1 <img1_path> --img2 <img2_path> --output <output_path>
+
+# Custom channels
+python -m cell_counter.cli.overlay --img1 <img1_path> --img2 <img2_path> --output <output_path> --channel1 2 --channel2 0
+```
+
+Optional arguments:
+- `--channel1`: Channel index (0=red, 1=green, 2=blue) for the first image (default: 0)
+- `--channel2`: Channel index (0=red, 1=green, 2=blue) for the second image (default: 1)
+
 ## Features
 
 - Process both nuclei and cytoplasm data

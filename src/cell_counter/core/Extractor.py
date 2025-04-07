@@ -102,7 +102,7 @@ class Extractor:
             stack = np.array(stack)
             
             # Save stack with warning filter
-            output_path = output_dir / f"contour_{contour_idx:03d}.tif"
+            output_path = output_dir / f"{image_type}_{contour_idx:03d}.tif"
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', message='.*is a low contrast image.*')
                 imsave(output_path, stack)
@@ -149,7 +149,7 @@ class Extractor:
                 stack = np.array([pattern] * len(frames))
                 
                 # Save stack with warning filter
-                output_path = output_dir / f"contour_{contour_idx:03d}.tif"
+                output_path = output_dir / f"pattern_{contour_idx:03d}.tif"
                 with warnings.catch_warnings():
                     warnings.filterwarnings('ignore', message='.*is a low contrast image.*')
                     imsave(output_path, stack)
