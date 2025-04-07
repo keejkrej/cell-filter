@@ -12,7 +12,7 @@ class Counter(ABC):
     """
     
     @abstractmethod
-    def count_nuclei(self, images: Union[np.ndarray, List[np.ndarray]], wanted: int) -> List[int]:
+    def count_nuclei(self, images: Union[np.ndarray, List[np.ndarray]]) -> List[int]:
         """
         Count nuclei in one or more images.
         

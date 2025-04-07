@@ -12,7 +12,7 @@ class SimpleCounter(Counter):
     Counter that uses simple thresholding to detect and count nuclei.
     """
     
-    def count_nuclei(self, images: Union[np.ndarray, List[np.ndarray]], wanted: int) -> List[int]:
+    def count_nuclei(self, images: Union[np.ndarray, List[np.ndarray]]) -> List[int]:
         """
         Count nuclei in one or more images using simple thresholding.
         
