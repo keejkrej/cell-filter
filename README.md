@@ -54,18 +54,18 @@ python -m cell_counter.cli.analyze --patterns <patterns_file> --nuclei <nuclei_f
 
 # With custom parameters
 python -m cell_counter.cli.analyze --patterns <patterns_file> --nuclei <nuclei_file> --output <output_file> --wanted 3 --no-cellpose --diameter 20
+```
 
 Optional arguments:
---wanted: Number of nuclei to look for (default: 3)
---no-cellpose: Use simple thresholding instead of Cellpose
---no-gpu: Don't use GPU for Cellpose
---diameter: Expected diameter of cells in pixels (default: 15)
---channels: Channel indices for Cellpose (default: "0,0")
---model: Type of Cellpose model to use (default: "cyto3")
---min-intensity: Minimum average intensity for valid regions (default: 10)
---grid-size: Size of the grid for snapping pattern centers (default: 20)
---threshold: Threshold value for nuclei extraction (optional, if not provided uses Otsu's method)
-```
+- `--wanted`: Number of nuclei to look for (default: 3)
+- `--no-cellpose`: Use simple thresholding instead of Cellpose
+- `--no-gpu`: Don't use GPU for Cellpose
+- `--diameter`: Expected diameter of cells in pixels (default: 15)
+- `--channels`: Channel indices for Cellpose (default: "0,0")
+- `--model`: Type of Cellpose model to use (default: "cyto3")
+- `--min-intensity`: Minimum average intensity for valid regions (default: 10)
+- `--grid-size`: Size of the grid for snapping pattern centers (default: 20)
+- `--threshold`: Threshold value for nuclei extraction (optional, if not provided uses Otsu's method)
 
 #### Extract Command
 
@@ -84,7 +84,7 @@ python -m cell_counter.cli.extract --patterns <patterns_file> --nuclei <nuclei_f
 
 Optional arguments:
 - `--min-frames`: Minimum number of valid frames required (default: 20)
-- `--grid-size`: Size of the grid for snapping pattern centers (default: 20). A larger value creates a coarser grid, while a smaller value creates a finer grid.
+- `--grid-size`: Size of the grid for snapping pattern centers (default: 20)
 
 Example:
 ```bash
