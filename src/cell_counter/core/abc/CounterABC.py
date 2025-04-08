@@ -1,12 +1,12 @@
 """
-Base counter class for cell-counter.
+Abstract base class for counting nuclei in images.
 """
 
 from abc import ABC, abstractmethod
 from typing import List, Union
 import numpy as np
 
-class Counter(ABC):
+class CounterABC(ABC):
     """
     Abstract base class for counting nuclei in images.
     """
