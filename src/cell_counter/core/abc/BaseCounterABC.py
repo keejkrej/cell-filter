@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from typing import List, Union
 import numpy as np
 
-class CounterABC(ABC):
+class BaseCounterABC(ABC):
     """
     Abstract base class for counting nuclei in images.
     """
