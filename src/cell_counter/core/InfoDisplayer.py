@@ -1,115 +1,157 @@
 """
-Core info functionality for cell-counter.
+Core info displayer functionality for cell-counter.
 """
 
-import cv2
-import matplotlib.pyplot as plt
+import json
+from pathlib import Path
 import numpy as np
-from skimage import io
+import matplotlib.pyplot as plt
+import cv2
+from typing import Dict, List, Optional, Tuple
+import logging
 from .CellGenerator import CellGenerator
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class InfoDisplayer:
     """
-    A class for displaying information about image stacks and visualizing patterns.
-    """
+    A class for displaying information about patterns.
     
+    This class provides functionality to visualize the patterns image for a specific view,
+    with bounding boxes and pattern indices overlaid on top.
+    
+    Attributes:
+        generator (CellGenerator): Cell generator instance
+        patterns_path (str): Path to the patterns ND2 file
+        cells_path (str): Path to the cells ND2 file
+    """
+
+    # =====================================================================
+    # Constructor and Initialization
+    # =====================================================================
+
     def __init__(
         self,
         patterns_path: str,
-        nuclei_path: str = None,
-        cyto_path: str = None,
-        grid_size: int = 20
-    ):
+        cells_path: str
+    ) -> None:
         """
         Initialize the InfoDisplayer with paths to pattern and cell images.
         
         Args:
-            patterns_path (str): Path to the patterns image file
-            nuclei_path (str, optional): Path to the nuclei image file
-            cyto_path (str, optional): Path to the cytoplasm image file
-            grid_size (int, optional): Size of the grid for snapping pattern centers (default: 20)
+            patterns_path (str): Path to the patterns ND2 file
+            cells_path (str): Path to the cells ND2 file containing nuclei and cytoplasm channels
+            
+        Raises:
+            ValueError: If initialization fails
         """
-        self.generator = CellGenerator(
-            patterns_path=patterns_path,
-            nuclei_path=nuclei_path,
-            cyto_path=cyto_path,
-            grid_size=grid_size
-        )
-        self.patterns_path = patterns_path
-        self.nuclei_path = nuclei_path
-        self.cyto_path = cyto_path
-        self.grid_size = grid_size
+        try:
+            self.generator = CellGenerator(patterns_path, cells_path)
+            self.patterns_path = patterns_path
+            self.cells_path = cells_path
+            logger.info(f"Successfully initialized InfoDisplayer with patterns: {patterns_path} and cells: {cells_path}")
+        except Exception as e:
+            logger.error(f"Error initializing InfoDisplayer: {e}")
+            raise ValueError(f"Error initializing InfoDisplayer: {e}")
 
-    def show_patterns(self) -> None:
-        """Show visualization of patterns image and contours/bounding boxes."""
-        plt.figure(figsize=(12, 8))
-        
-        # Plot original patterns image
-        plt.subplot(1, 2, 1)
-        plt.imshow(self.generator.patterns, cmap='gray')
-        plt.title('Original Patterns Image')
-        plt.axis('off')
+    # =====================================================================
+    # Private Methods
+    # =====================================================================
 
-        # Plot contours and bounding boxes on black background
-        plt.subplot(1, 2, 2)
-        vis_img = np.zeros_like(self.generator.patterns, dtype=np.uint8)
-        vis_img = cv2.cvtColor(vis_img, cv2.COLOR_GRAY2RGB)
-        
-        # Draw contours in green
-        cv2.drawContours(vis_img, self.generator.contours, -1, (0, 255, 0), 2)
-        
-        # Draw bounding boxes in red and add index numbers
-        for idx, bbox in enumerate(self.generator.bounding_boxes):
-            x, y, w, h = bbox
-            # Draw bounding box
-            cv2.rectangle(vis_img, (x, y), (x + w, y + h), (255, 0, 0), 2)
-            # Add index number with larger font size and thickness
-            cv2.putText(vis_img, str(idx), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 
-                        1.0, (255, 255, 255), 2)
-        
-        plt.imshow(vis_img)
-        plt.title('Contours (green) and Bounding Boxes (red) with Indices')
-        plt.axis('off')
-
-        plt.tight_layout()
-        plt.show()
-
-    def get_info(self) -> dict:
+    def _draw_boxes(self, image: np.ndarray) -> np.ndarray:
         """
-        Get information about the image stacks.
+        Draw bounding boxes and indices for all patterns.
         
+        Args:
+            image (np.ndarray): Original patterns image
+            
         Returns:
-            dict: Dictionary containing information about the images
+            np.ndarray: Image with bounding boxes and indices drawn
         """
-        info = {
-            'patterns': {
-                'path': self.patterns_path,
-                'dimensions': self.generator.patterns.shape,
-                'grid_size': self.grid_size
-            }
-        }
+        # Convert to RGB for colored annotations
+        if len(image.shape) == 2:
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+        
+        for pattern_idx in range(self.generator.n_patterns):
+            # Get contour
+            contour = self.generator.get_contour(pattern_idx)
+            if contour is not None:
+                # Get bounding box coordinates
+                y_min, x_min = np.min(contour, axis=0)
+                y_max, x_max = np.max(contour, axis=0)
+                
+                # Draw bounding box
+                cv2.rectangle(image, 
+                            (int(x_min), int(y_min)), 
+                            (int(x_max), int(y_max)), 
+                            (0, 255, 0),  # Green color
+                            2)  # Line thickness
+                
+                # Add pattern index
+                cv2.putText(image, 
+                          f"{pattern_idx}", 
+                          (int(x_min), int(y_min) - 10),  # Position above the box
+                          cv2.FONT_HERSHEY_SIMPLEX, 
+                          0.5,  # Font scale
+                          (0, 255, 0),  # Green color
+                          2)  # Line thickness
+        
+        return image
 
-        # Add nuclei stack info if provided
-        if self.nuclei_path:
-            info['nuclei'] = {
-                'path': self.nuclei_path,
-                'num_frames': self.generator.n_frames_nuclei,
-                'dimensions_per_frame': self.generator.patterns.shape  # Use patterns shape as reference
-            }
+    # =====================================================================
+    # Public Methods
+    # =====================================================================
 
-        # Add cytoplasm stack info if provided
-        if self.cyto_path:
-            info['cyto'] = {
-                'path': self.cyto_path,
-                'num_frames': self.generator.n_frames_cyto,
-                'dimensions_per_frame': self.generator.patterns.shape  # Use patterns shape as reference
-            }
+    def plot_view(self, view_idx: int, output_path: Optional[str] = None) -> None:
+        """
+        Plot the patterns image for a specific view with bounding boxes and indices.
+        
+        Args:
+            view_idx (int): Index of the view to plot
+            output_path (Optional[str]): Path to save the plot (if None, display plot)
+            
+        Raises:
+            ValueError: If view index is invalid or plotting fails
+        """
+        try:
+            # Load view and patterns
+            self.generator.load_view(view_idx)
+            self.generator.load_patterns()
+            self.generator.process_patterns()
+            
+            # Create figure
+            fig = plt.figure(figsize=(15, 8))
+            ax = plt.gca()
+            
+            # Get patterns image and draw boxes
+            patterns_image = self.generator.patterns.copy()
+            annotated_image = self._draw_boxes(patterns_image)
+            
+            # Plot annotated image
+            ax.imshow(annotated_image)
+            
+            # Set title
+            ax.set_title(f"View {view_idx} - Patterns with Bounding Boxes")
+            
+            # Adjust layout
+            plt.tight_layout()
+            
+            # Save or show plot
+            if output_path:
+                plt.savefig(output_path)
+                logger.info(f"Saved plot to {output_path}")
+            else:
+                plt.show()
+                
+        except Exception as e:
+            logger.error(f"Error plotting view {view_idx}: {e}")
+            raise ValueError(f"Error plotting view {view_idx}: {e}")
+        finally:
+            plt.close()
 
-        # Add contours info
-        info['contours'] = {
-            'total_contours': len(self.generator.contours),
-            'contours_after_filtering': len(self.generator.contours),
-            'contours_filtered_out': 0  # This will be updated if any contours are filtered
-        }
-
-        return info
+    def close(self) -> None:
+        """Close all open files."""
+        self.generator.close_files()
+        logger.info("Closed all files")

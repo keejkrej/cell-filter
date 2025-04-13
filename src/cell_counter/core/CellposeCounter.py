@@ -3,12 +3,10 @@ Cellpose-based counter for cell-counter.
 """
 
 from typing import List, Union
-from matplotlib import pyplot as plt
 import numpy as np
 from cellpose import models
-from .Counter import Counter
 
-class CellposeCounter(Counter):
+class CellposeCounter():
     """
     Counter that uses Cellpose to detect and count nuclei.
     """

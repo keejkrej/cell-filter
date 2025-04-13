@@ -7,14 +7,13 @@ Usage:
     After installing the package with `pip install -e .`, run:
     
     # Basic usage
-    python -m cell_counter.cli.analyze --patterns <patterns_path> --nuclei <nuclei_path> --output <output_path>
+    python -m cell_counter.cli.analyze --patterns <patterns_path> --cells <cells_path> --output <output_path>
     
     # With custom parameters
-    python -m cell_counter.cli.analyze --patterns <patterns_path> --nuclei <nuclei_path> --output <output_path> --wanted 3 --no-cellpose --diameter 20
+    python -m cell_counter.cli.analyze --patterns <patterns_path> --cells <cells_path> --output <output_path> --wanted 3 --no-gpu --diameter 20
     
     Optional arguments:
     --wanted: Number of nuclei to look for (default: 3)
-    --no-cellpose: Use simple thresholding instead of Cellpose
     --no-gpu: Don't use GPU for Cellpose
     --diameter: Expected diameter of cells in pixels (default: 15)
     --channels: Channel indices for Cellpose (default: "0,0")
@@ -25,6 +24,12 @@ import argparse
 import sys
 import os
 from ..core.Analyzer import Analyzer
+import logging
+from pathlib import Path
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def parse_channels(channels_str: str) -> list:
     """Parse channel string into a list of integers."""
@@ -45,10 +50,10 @@ def parse_args():
         help="Path to the patterns image file",
     )
     parser.add_argument(
-        "--nuclei",
+        "--cells",
         type=str,
         required=True,
-        help="Path to the nuclei image file",
+        help="Path to the cells image file containing nuclei and cytoplasm channels",
     )
     parser.add_argument(
         "--output",
@@ -61,11 +66,6 @@ def parse_args():
         type=int,
         default=3,
         help="Number of nuclei to look for (default: 3)",
-    )
-    parser.add_argument(
-        "--no-cellpose",
-        action="store_true",
-        help="Use simple thresholding instead of Cellpose",
     )
     parser.add_argument(
         "--no-gpu",
@@ -91,10 +91,19 @@ def parse_args():
         help='Type of Cellpose model to use (default: "cyto3")',
     )
     parser.add_argument(
-        "--grid-size",
+        "--start-view",
         type=int,
-        default=20,
-        help="Size of the grid for snapping pattern centers (default: 20)",
+        help="Starting view index (inclusive)"
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Process all views"
+    )
+    parser.add_argument(
+        "--end-view",
+        type=int,
+        help="Ending view index (exclusive). Required if --start-view is specified."
     )
     return parser.parse_args()
 
@@ -107,29 +116,40 @@ def main():
         print(f"Error: Patterns file not found: {args.patterns}")
         sys.exit(1)
 
-    # Check if nuclei file exists
-    if not os.path.exists(args.nuclei):
-        print(f"Error: Nuclei file not found: {args.nuclei}")
+    # Check if cells file exists
+    if not os.path.exists(args.cells):
+        print(f"Error: Cells file not found: {args.cells}")
         sys.exit(1)
 
-    # Initialize analyzer
-    analyzer = Analyzer(
-        patterns_path=args.patterns,
-        nuclei_path=args.nuclei,
-        wanted=args.wanted,
-        use_cellpose=not args.no_cellpose,
-        use_gpu=not args.no_gpu,
-        diameter=args.diameter,
-        channels=args.channels,
-        model_type=args.model,
-        grid_size=args.grid_size
-    )
+    # Validate arguments
+    if args.start_view is not None and args.end_view is None:
+        print("--end-view is required when --start-view is specified")
+        sys.exit(1)
 
-    # Analyze time series
-    results = analyzer.analyze_time_series()
+    try:
+        # Initialize analyzer
+        analyzer = Analyzer(
+            patterns_path=args.patterns,
+            cells_path=args.cells,
+            output_folder=args.output,
+            wanted=args.wanted,
+            use_gpu=not args.no_gpu,
+            diameter=args.diameter,
+            channels=args.channels,
+            model_type=args.model
+        )
 
-    # Save results
-    analyzer.save_time_series(results, args.output)
+        # Process views
+        if args.all:
+            logger.info("Processing all views")
+            analyzer.process_views(0, analyzer.generator.n_views)
+        else:
+            logger.info(f"Processing views {args.start_view} to {args.end_view-1}")
+            analyzer.process_views(args.start_view, args.end_view)
+
+    except Exception as e:
+        logger.error(f"Error during analysis: {e}")
+        raise
 
 if __name__ == '__main__':
     main() 

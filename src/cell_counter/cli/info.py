@@ -6,56 +6,51 @@ Info command for cell-counter.
 Usage:
     After installing the package with `pip install -e .`, run:
     
-    # Show info for patterns and nuclei
-    python -m cell_counter.cli.info --patterns <patterns_path> --nuclei <nuclei_path>
+    # Basic usage
+    python -m cell_counter.cli.info --patterns <patterns_path> --cells <cells_path> --view <view_idx>
     
-    # Show info for patterns and cytoplasm
-    python -m cell_counter.cli.info --patterns <patterns_path> --cyto <cyto_path>
-    
-    # Show info for all
-    python -m cell_counter.cli.info --patterns <patterns_path> --nuclei <nuclei_path> --cyto <cyto_path>
+    # Save plot to file
+    python -m cell_counter.cli.info --patterns <patterns_path> --cells <cells_path> --view <view_idx> --output <output_path>
 """
 
-import warnings
-import platform
-import os
 import argparse
 import sys
-from pathlib import Path
+import os
 from ..core.InfoDisplayer import InfoDisplayer
+import logging
+from pathlib import Path
 
-# Only filter specific Qt warnings on Linux
-if platform.system() == 'Linux':
-    warnings.filterwarnings('ignore', message='Failed to create wl_display')
-    warnings.filterwarnings('ignore', message='Could not load the Qt platform plugin')
-    os.environ['QT_QPA_PLATFORM'] = 'xcb'
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Display information about the image stacks."
+        description="Display patterns image with bounding boxes and indices."
     )
     parser.add_argument(
         "--patterns",
         type=str,
         required=True,
-        help="Path to the patterns image file",
+        help="Path to the patterns ND2 file",
     )
     parser.add_argument(
-        "--nuclei",
+        "--cells",
         type=str,
-        help="Path to the nuclei image file",
+        required=True,
+        help="Path to the cells ND2 file containing nuclei and cytoplasm channels",
     )
     parser.add_argument(
-        "--cyto",
-        type=str,
-        help="Path to the cytoplasm image file",
-    )
-    parser.add_argument(
-        "--grid-size",
+        "--view",
         type=int,
-        default=20,
-        help="Size of the grid for snapping pattern centers (default: 20)",
+        required=True,
+        help="Index of the view to display",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        help="Path to save the plot (if not provided, plot will be displayed)",
     )
     return parser.parse_args()
 
@@ -65,59 +60,31 @@ def main():
 
     # Check if patterns file exists
     if not os.path.exists(args.patterns):
-        print(f"Error: Patterns file not found: {args.patterns}")
+        logger.error(f"Patterns file not found: {args.patterns}")
         sys.exit(1)
 
-    # Check if nuclei file exists if provided
-    if args.nuclei and not os.path.exists(args.nuclei):
-        print(f"Error: Nuclei file not found: {args.nuclei}")
+    # Check if cells file exists
+    if not os.path.exists(args.cells):
+        logger.error(f"Cells file not found: {args.cells}")
         sys.exit(1)
 
-    # Check if cytoplasm file exists if provided
-    if args.cyto and not os.path.exists(args.cyto):
-        print(f"Error: Cytoplasm file not found: {args.cyto}")
-        sys.exit(1)
+    try:
+        # Initialize info displayer
+        displayer = InfoDisplayer(
+            patterns_path=args.patterns,
+            cells_path=args.cells
+        )
 
-    # Initialize InfoDisplayer
-    info_displayer = InfoDisplayer(
-        patterns_path=args.patterns,
-        nuclei_path=args.nuclei,
-        cyto_path=args.cyto,
-        grid_size=args.grid_size
-    )
+        # Plot view
+        logger.info(f"Plotting view {args.view}")
+        displayer.plot_view(args.view, args.output)
+        logger.info("Plotting completed successfully")
 
-    # Get and display info
-    data = info_displayer.get_info()
+    except Exception as e:
+        logger.error(f"Error during plotting: {e}")
+        raise
+    finally:
+        displayer.close()
 
-    # Print patterns image info
-    print("\nPatterns Image:")
-    print(f"  Path: {data['patterns']['path']}")
-    print(f"  Dimensions: {data['patterns']['dimensions']}")
-    print(f"  Grid size: {args.grid_size}x{args.grid_size}")
-
-    # Print nuclei stack info if provided
-    if 'nuclei' in data:
-        print("\nNuclei Stack:")
-        print(f"  Path: {data['nuclei']['path']}")
-        print(f"  Number of frames: {data['nuclei']['num_frames']}")
-        print(f"  Dimensions per frame: {data['nuclei']['dimensions_per_frame']}")
-
-    # Print cytoplasm stack info if provided
-    if 'cyto' in data:
-        print("\nCytoplasm Stack:")
-        print(f"  Path: {data['cyto']['path']}")
-        print(f"  Number of frames: {data['cyto']['num_frames']}")
-        print(f"  Dimensions per frame: {data['cyto']['dimensions_per_frame']}")
-
-    # Print contours info
-    print("\nContours:")
-    print(f"  Total contours found: {data['contours']['total_contours']}")
-    print(f"  Contours after filtering: {data['contours']['contours_after_filtering']}")
-    if data['contours']['contours_filtered_out'] > 0:
-        print(f"  Contours filtered out: {data['contours']['contours_filtered_out']}")
-
-    # Show patterns visualization
-    info_displayer.show_patterns()
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main() 
