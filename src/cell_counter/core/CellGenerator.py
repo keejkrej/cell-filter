@@ -6,61 +6,61 @@ import cv2
 import numpy as np
 from skimage.io import imread
 from skimage import img_as_ubyte
+from nd2reader import ND2Reader
 
 class CellGenerator:
     """
     A class for generating and processing cell data from images.
     """
     
-    def __init__(self, patterns_path, nuclei_path=None, cyto_path=None, grid_size=20):
+    def __init__(self, patterns_path, cells_path, grid_size=20):
         """
         Initialize the CellGenerator with paths to pattern and cell images.
         
         Args:
-            patterns_path (str): Path to the patterns image file
-            nuclei_path (str, optional): Path to the nuclei image file
-            cyto_path (str, optional): Path to the cytoplasm image file
+            patterns_path (str): Path to the patterns ND2 file
+            cells_path (str): Path to the cell ND2 file containing nuclei and cytoplasm channels
             grid_size (int, optional): Size of the grid for snapping pattern centers (default: 20)
         """
         self.patterns_path = patterns_path
-        self.nuclei_path = nuclei_path
-        self.cyto_path = cyto_path
+        self.cells_path = cells_path
         self.grid_size = grid_size
-        
-        self._load_patterns()
-        self._process_patterns()
         
         # Initialize frame storage
         self.frame_nuclei = None
         self.frame_cyto = None
         
-        # Load and cache stacks
-        if self.nuclei_path:
-            self.nuclei_stack = imread(self.nuclei_path)
-            self.n_frames_nuclei = len(self.nuclei_stack)
-        else:
-            self.nuclei_stack = None
-            self.n_frames_nuclei = 0
+        # Initialize ND2 reader and get metadata
+        self.cell_reader = ND2Reader(self.cells_path)
+        self.cell_metadata = {
+            'channels': self.cell_reader.sizes.get('c', 1),
+            'frames': self.cell_reader.sizes.get('t', 1),
+            'views': self.cell_reader.sizes.get('v', 1),
+            'z_slices': self.cell_reader.sizes.get('z', 1)
+        }
             
-        if self.cyto_path:
-            self.cyto_stack = imread(self.cyto_path)
-            self.n_frames_cyto = len(self.cyto_stack)
-        else:
-            self.cyto_stack = None
-            self.n_frames_cyto = 0
+        if self.cell_metadata['channels'] != 2:
+            self.cell_reader.close()
+            raise ValueError("Cell ND2 file must contain exactly 2 channels (nuclei and cytoplasm)")
+        
+        self.current_view = 0
+        self.current_z = 0
     
-    def _load_patterns(self):
-        """Load the patterns image."""
-        self.patterns = img_as_ubyte(imread(self.patterns_path))
+    def __del__(self):
+        """Clean up by closing the ND2 reader when the object is destroyed."""
+        if hasattr(self, 'cell_reader'):
+            self.cell_reader.close()
     
-    def _process_patterns(self):
+    def load_patterns(self, view_idx):
+        """Load the patterns from ND2 file."""
+        with ND2Reader(self.patterns_path) as images:
+            # Take the first frame/view/channel if multiple exist
+            self.patterns = img_as_ubyte(images[0])
+    
+    def process_patterns(self):
         """Process pattern image to extract contours and their bounding boxes."""
         blur = cv2.GaussianBlur(self.patterns, (5, 5), 0)
         _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        
-        # Add tolerance by eroding the thresholded image
-        kernel = np.ones((3, 3), np.uint8)
-        thresh = cv2.erode(thresh, kernel, iterations=1)
         
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
@@ -115,34 +115,59 @@ class CellGenerator:
         
         self.n_contours = len(self.contours)
     
-    def load_frame_nuclei(self, frame_idx):
+    def load_frame_nuclei(self, frame_idx, view_idx=None, z_idx=None):
         """
-        Load a specific frame from the nuclei stack into memory.
+        Load a specific frame from the nuclei channel into memory.
         
         Args:
             frame_idx (int): Frame index to load
+            view_idx (int, optional): View index to load (defaults to current view)
+            z_idx (int, optional): Z-slice index to load (defaults to current z)
         """
-        if self.nuclei_stack is None:
-            raise ValueError("No nuclei stack loaded")
-
-        if frame_idx >= self.n_frames_nuclei:
-            raise ValueError(f"Frame index {frame_idx} out of range (0-{self.n_frames_nuclei-1})")
-        self.frame_nuclei = img_as_ubyte(self.nuclei_stack[frame_idx])
+        if frame_idx >= self.cell_metadata['frames']:
+            raise ValueError(f"Frame index {frame_idx} out of range (0-{self.cell_metadata['frames']-1})")
+            
+        view = self.current_view if view_idx is None else view_idx
+        z = self.current_z if z_idx is None else z_idx
+        
+        if view >= self.cell_metadata['views']:
+            raise ValueError(f"View index {view} out of range (0-{self.cell_metadata['views']-1})")
+        if z >= self.cell_metadata['z_slices']:
+            raise ValueError(f"Z index {z} out of range (0-{self.cell_metadata['z_slices']-1})")
+            
+        self.frame_nuclei = img_as_ubyte(self.cell_reader.get_frame_2D(c=0, t=frame_idx, v=view, z=z))
+        
+        if view_idx is not None:
+            self.current_view = view_idx
+        if z_idx is not None:
+            self.current_z = z_idx
     
-    def load_frame_cyto(self, frame_idx):
+    def load_frame_cyto(self, frame_idx, view_idx=None, z_idx=None):
         """
-        Load a specific frame from the cytoplasm stack into memory.
+        Load a specific frame from the cytoplasm channel into memory.
         
         Args:
             frame_idx (int): Frame index to load
+            view_idx (int, optional): View index to load (defaults to current view)
+            z_idx (int, optional): Z-slice index to load (defaults to current z)
         """
-        if self.cyto_stack is None:
-            raise ValueError("No cytoplasm stack loaded")
+        if frame_idx >= self.cell_metadata['frames']:
+            raise ValueError(f"Frame index {frame_idx} out of range (0-{self.cell_metadata['frames']-1})")
             
-        if frame_idx >= self.n_frames_cyto:
-            raise ValueError(f"Frame index {frame_idx} out of range (0-{self.n_frames_cyto-1})")
+        view = self.current_view if view_idx is None else view_idx
+        z = self.current_z if z_idx is None else z_idx
+        
+        if view >= self.cell_metadata['views']:
+            raise ValueError(f"View index {view} out of range (0-{self.cell_metadata['views']-1})")
+        if z >= self.cell_metadata['z_slices']:
+            raise ValueError(f"Z index {z} out of range (0-{self.cell_metadata['z_slices']-1})")
             
-        self.frame_cyto = img_as_ubyte(self.cyto_stack[frame_idx])
+        self.frame_cyto = img_as_ubyte(self.cell_reader.get_frame_2D(c=1, t=frame_idx, v=view, z=z))
+        
+        if view_idx is not None:
+            self.current_view = view_idx
+        if z_idx is not None:
+            self.current_z = z_idx
     
     def _extract_region(self, frame, contour_idx):
         """
