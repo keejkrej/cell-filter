@@ -8,11 +8,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 from typing import Dict, List, Optional, Tuple
+import cv2
 import logging
 from .CellGenerator import CellGenerator
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class InfoDisplayer:
@@ -78,19 +78,19 @@ class InfoDisplayer:
             # Get bounding box coordinates
             bbox = self.generator.bounding_boxes[pattern_idx]
             if bbox is not None:
-                y_min, x_min, y_max, x_max = bbox
+                x, y, w, h = bbox
                 
                 # Draw bounding box
                 cv2.rectangle(image, 
-                            (int(x_min), int(y_min)), 
-                            (int(x_max), int(y_max)), 
+                            (int(x), int(y)), 
+                            (int(x + w), int(y + h)), 
                             (0, 255, 0),  # Green color
                             2)  # Line thickness
                 
                 # Add pattern index
                 cv2.putText(image, 
                           f"{pattern_idx}", 
-                          (int(x_min), int(y_min) - 10),  # Position above the box
+                          (int(x), int(y) - 10),  # Position above the box
                           cv2.FONT_HERSHEY_SIMPLEX, 
                           0.5,  # Font scale
                           (0, 255, 0),  # Green color
@@ -124,7 +124,7 @@ class InfoDisplayer:
             ax = plt.gca()
             
             # Get patterns image and draw boxes
-            patterns_image = self.generator.patterns.copy()
+            patterns_image = self.generator.thresh.copy()
             annotated_image = self._draw_boxes(patterns_image)
             
             # Plot annotated image

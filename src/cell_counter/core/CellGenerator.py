@@ -11,13 +11,7 @@ import logging
 from pathlib import Path
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Constants
-DEFAULT_GRID_SIZE = 20
-AREA_STD_DEVIATIONS = 2
-GAUSSIAN_BLUR_SIZE = (5, 5)
 
 class CellGenerator:
     """
@@ -44,25 +38,73 @@ class CellGenerator:
         centers (Optional[List[Tuple[int, int]]]): Pattern centers
         frame_nuclei (Optional[np.ndarray]): Current nuclei frame
         frame_cyto (Optional[np.ndarray]): Current cytoplasm frame
+        gaussian_blur_size (Tuple[int, int]): Size of Gaussian blur kernel
+        bimodal_threshold (float): Threshold for coefficient of variation to determine if areas are bimodal
+        min_area_ratio (float): Minimum area ratio to mean for filtering small areas
+        max_iterations (int): Maximum number of iterations for iterative area filtering
+        std_deviations_for_outliers (int): Number of standard deviations for outlier filtering
+        threshold_value (int): Threshold value for binary thresholding
+        edge_tolerance (int): Number of pixels to exclude from image edges
+        morph_open_size (Tuple[int, int]): Size of kernel for morphological opening
+        morph_close_size (Tuple[int, int]): Size of kernel for morphological closing
+        nuclei_channel (int): Channel index for nuclei (default: 0)
+        cyto_channel (int): Channel index for cytoplasm (default: 1)
     """
 
     # =====================================================================
     # Constructor and Initialization
     # =====================================================================
 
-    def __init__(self, patterns_path: str, cells_path: str) -> None:
+    def __init__(
+        self, 
+        patterns_path: str, 
+        cells_path: str,
+        gaussian_blur_size: Tuple[int, int] = (11, 11),
+        bimodal_threshold: float = 0.1,
+        min_area_ratio: float = 0.1,
+        max_iterations: int = 10,
+        std_deviations_for_outliers: int = 5,
+        threshold_value: int = 1,
+        edge_tolerance: int = 10,
+        morph_open_size: Tuple[int, int] = (3, 3),
+        morph_close_size: Tuple[int, int] = (5, 5),
+        nuclei_channel: int = 1,
+        cyto_channel: int = 0
+    ) -> None:
         """
         Initialize the CellGenerator with paths to pattern and cell images.
         
         Args:
             patterns_path (str): Path to the patterns ND2 file
             cells_path (str): Path to the cell ND2 file containing nuclei and cytoplasm channels
+            gaussian_blur_size (Tuple[int, int]): Size of Gaussian blur kernel
+            bimodal_threshold (float): Threshold for coefficient of variation to determine if areas are bimodal
+            min_area_ratio (float): Minimum area ratio to mean for filtering small areas
+            max_iterations (int): Maximum number of iterations for iterative area filtering
+            std_deviations_for_outliers (int): Number of standard deviations for outlier filtering
+            threshold_value (int): Threshold value for binary thresholding
+            edge_tolerance (int): Number of pixels to exclude from image edges
+            morph_open_size (Tuple[int, int]): Size of kernel for morphological opening (removes small noise)
+            morph_close_size (Tuple[int, int]): Size of kernel for morphological closing (fills small holes)
+            nuclei_channel (int): Channel index for nuclei (default: 0)
+            cyto_channel (int): Channel index for cytoplasm (default: 1)
             
         Raises:
             ValueError: If initialization fails or files are invalid
         """
         self.patterns_path = str(Path(patterns_path).resolve())
         self.cells_path = str(Path(cells_path).resolve())
+        self.gaussian_blur_size = gaussian_blur_size
+        self.bimodal_threshold = bimodal_threshold
+        self.min_area_ratio = min_area_ratio
+        self.max_iterations = max_iterations
+        self.std_deviations_for_outliers = std_deviations_for_outliers
+        self.threshold_value = threshold_value
+        self.edge_tolerance = edge_tolerance
+        self.morph_open_size = morph_open_size
+        self.morph_close_size = morph_close_size
+        self.nuclei_channel = nuclei_channel
+        self.cyto_channel = cyto_channel
         
         try:
             self._init_patterns()
@@ -112,7 +154,7 @@ class CellGenerator:
             ValueError: If files don't meet the required specifications
         """
         if self.patterns_metadata['channels'] != 0:
-            raise ValueError("Patterns ND2 file must contain exactly 1 channel")
+            raise ValueError("Patterns ND2 file shouldn't have any channels")
         if self.cells_metadata['channels'] != 2:
             raise ValueError("Cells ND2 file must contain exactly 2 channels (nuclei and cytoplasm)")
         if self.patterns_metadata['frames'] != 1:
@@ -130,6 +172,7 @@ class CellGenerator:
         self.current_frame = 0
         self.patterns = None
         self.n_patterns = 0
+        self.thresh = None
         self.contours = None
         self.bounding_boxes = None
         self.centers = None
@@ -158,56 +201,99 @@ class CellGenerator:
             raise ValueError("Image must not be None or empty")
             
         # Apply Gaussian blur to reduce noise
-        blur = cv2.GaussianBlur(image, GAUSSIAN_BLUR_SIZE, 0)
+        blur = cv2.GaussianBlur(image, self.gaussian_blur_size, 0)
         
-        # Apply Otsu's thresholding
-        _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        # Apply binary thresholding
+        _, thresh = cv2.threshold(blur, self.threshold_value, 255, cv2.THRESH_BINARY)
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, np.ones(self.morph_open_size, np.uint8))
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, np.ones(self.morph_close_size, np.uint8))
         
         # Find contours
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         logger.debug(f"Found {len(contours)} contours in image")
         
-        return contours
+        return contours, thresh
 
-    def _refine_contours(self, contours: List[np.ndarray]) -> List[Tuple[int, int, np.ndarray, Tuple[int, int, int, int]]]:
+    def _refine_contours(self, contours: List[np.ndarray], image_shape: Tuple[int, int]) -> List[Tuple[int, int, np.ndarray, Tuple[int, int, int, int]]]:
         """
-        Refine contours by filtering based on area statistics and sorting.
+        Refine contours by filtering based on area and calculating centers.
         
         Args:
             contours (List[np.ndarray]): List of contours to refine
+            image_shape (Tuple[int, int]): Shape of the image (height, width)
             
         Returns:
-            List[Tuple[int, int, np.ndarray, Tuple[int, int, int, int]]]: List of refined contour data
-        """
-        if contours is None or len(contours) == 0:
-            raise ValueError("Contours must not be None or empty")
-        
-        # First pass: collect all areas to calculate statistics
-        areas = [cv2.contourArea(contour) for contour in contours]
-        
-        # Calculate mean and standard deviation of areas
-        mean_area = np.mean(areas)
-        std_area = np.std(areas)
-        
-        # Calculate centers and store with contours and bounding boxes
-        contour_data = []
-        for contour in contours:
-            area = cv2.contourArea(contour)
-            x, y, w, h = cv2.boundingRect(contour)
+            List[Tuple[int, int, np.ndarray, Tuple[int, int, int, int]]]: List of (center_y, center_x, contour, bounding_box)
             
-            # Skip if area deviates too much from mean
-            if abs(area - mean_area) > AREA_STD_DEVIATIONS * std_area:
+        Raises:
+            ValueError: If contours list is empty
+        """
+        if not contours:
+            raise ValueError("No contours provided")
+            
+        # Calculate areas
+        areas = np.array([cv2.contourArea(contour) for contour in contours])
+        
+        # Iteratively remove small areas until CV falls below threshold
+        current_contours = list(contours)
+        current_areas = areas.copy()
+        
+        for iteration in range(self.max_iterations):
+            cv = np.std(current_areas) / np.mean(current_areas)
+            if cv < self.bimodal_threshold:
+                break
+                
+            # Remove areas smaller than min_area_ratio of mean
+            mean_area = np.mean(current_areas)
+            min_area = self.min_area_ratio * mean_area
+            
+            # Create new lists of contours and areas
+            new_contours = []
+            new_areas = []
+            for i, (contour, area) in enumerate(zip(current_contours, current_areas)):
+                if area >= min_area:
+                    new_contours.append(contour)
+                    new_areas.append(area)
+            
+            # Update for next iteration
+            current_contours = new_contours
+            current_areas = np.array(new_areas)
+            
+            if len(current_contours) == 0:
+                logger.warning("All contours were removed during iterative filtering")
+                break
+                
+        logger.info(f"After {iteration + 1} iterations, CV reduced to {cv:.3f}")
+        
+        # Now filter outliers using standard deviations
+        mean_area = np.mean(current_areas)
+        std_area = np.std(current_areas)
+        lower_bound = mean_area - self.std_deviations_for_outliers * std_area
+        upper_bound = mean_area + self.std_deviations_for_outliers * std_area
+        
+        contour_data = []
+        for i, contour in enumerate(current_contours):
+            area = current_areas[i]
+            if area < lower_bound or area > upper_bound:
                 continue
                 
-            # Calculate center
+            x, y, w, h = cv2.boundingRect(contour)
+            
+            # Skip if too close to edges
+            if (x < self.edge_tolerance or 
+                y < self.edge_tolerance or 
+                x + w > image_shape[1] - self.edge_tolerance or 
+                y + h > image_shape[0] - self.edge_tolerance):
+                continue
+                
             center_x = x + w // 2
             center_y = y + h // 2
-            
             contour_data.append((center_y, center_x, contour, (x, y, w, h)))
-        
-        # Sort by y (row) first, then x within each row
+
+        # Sort contours by center
         contour_data.sort(key=lambda x: (x[0], x[1]))
-        logger.debug(f"Refined {len(contours)} contours to {len(contour_data)} valid contours")
+            
+        logger.info(f"Filtered {len(contours)} contours to {len(contour_data)} using iterative area analysis")
         return contour_data
     
     def _extract_region(self, frame: np.ndarray, pattern_idx: int) -> np.ndarray:
@@ -293,8 +379,8 @@ class CellGenerator:
         if frame_idx >= self.n_frames:
             raise ValueError(f"Frame index {frame_idx} out of range (0-{self.n_frames-1})")
         try:
-            self.frame_nuclei = img_as_ubyte(self.cells_reader.get_frame_2D(c=0, t=frame_idx, v=self.current_view))
-            logger.debug(f"Loaded nuclei frame {frame_idx} for view {self.current_view}")
+            self.frame_nuclei = img_as_ubyte(self.cells_reader.get_frame_2D(c=self.nuclei_channel, t=frame_idx, v=self.current_view))
+            logger.debug(f"Loaded nuclei frame {frame_idx} for view {self.current_view} from channel {self.nuclei_channel}")
         except Exception as e:
             logger.error(f"Error loading nuclei: {e}")
             raise ValueError(f"Error loading nuclei: {e}")
@@ -312,8 +398,8 @@ class CellGenerator:
         if frame_idx >= self.n_frames:
             raise ValueError(f"Frame index {frame_idx} out of range (0-{self.n_frames-1})")
         try:
-            self.frame_cyto = img_as_ubyte(self.cells_reader.get_frame_2D(c=1, t=frame_idx, v=self.current_view))
-            logger.debug(f"Loaded cytoplasm frame {frame_idx} for view {self.current_view}")
+            self.frame_cyto = img_as_ubyte(self.cells_reader.get_frame_2D(c=self.cyto_channel, t=frame_idx, v=self.current_view))
+            logger.debug(f"Loaded cytoplasm frame {frame_idx} for view {self.current_view} from channel {self.cyto_channel}")
         except Exception as e:
             logger.error(f"Error loading cyto: {e}")
             raise ValueError(f"Error loading cyto: {e}")
@@ -328,8 +414,8 @@ class CellGenerator:
         if self.patterns is None:
             raise ValueError("Patterns must be loaded before processing")
             
-        contours = self._find_contours(self.patterns)
-        contour_data = self._refine_contours(contours)
+        contours, self.thresh = self._find_contours(self.patterns)
+        contour_data = self._refine_contours(contours, self.patterns.shape)
         self.contours = [x[2] for x in contour_data]
         self.bounding_boxes = [x[3] for x in contour_data]
         self.centers = [x[0:2] for x in contour_data]

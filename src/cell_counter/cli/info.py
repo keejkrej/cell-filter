@@ -9,7 +9,10 @@ Usage:
     # Basic usage
     python -m cell_counter.cli.info --patterns <patterns_path> --cells <cells_path> --view <view_idx>
     
-    # Save plot to file
+    # Display all views
+    python -m cell_counter.cli.info --patterns <patterns_path> --cells <cells_path> --view-all
+    
+    # Save plot to file (only works with single view)
     python -m cell_counter.cli.info --patterns <patterns_path> --cells <cells_path> --view <view_idx> --output <output_path>
 """
 
@@ -19,10 +22,6 @@ import os
 from ..core.InfoDisplayer import InfoDisplayer
 import logging
 from pathlib import Path
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 def parse_args():
     """Parse command line arguments."""
@@ -41,22 +40,40 @@ def parse_args():
         required=True,
         help="Path to the cells ND2 file containing nuclei and cytoplasm channels",
     )
-    parser.add_argument(
+    view_group = parser.add_mutually_exclusive_group(required=True)
+    view_group.add_argument(
         "--view",
         type=int,
-        required=True,
         help="Index of the view to display",
+    )
+    view_group.add_argument(
+        "--view-all",
+        action="store_true",
+        help="Display all views sequentially",
     )
     parser.add_argument(
         "--output",
         type=str,
-        help="Path to save the plot (if not provided, plot will be displayed)",
+        help="Path to save the plot (only works with --view, not --view-all)",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging",
     )
     return parser.parse_args()
 
 def main():
     """Main function."""
     args = parse_args()
+
+    # Configure logging
+    logging.basicConfig(level=logging.WARNING)  # Root logger at WARNING to suppress third-party messages
+    logger = logging.getLogger(__name__)
+
+    # Set package logger level based on --debug flag
+    package_logger = logging.getLogger("cell_counter")
+    package_logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
 
     # Check if patterns file exists
     if not os.path.exists(args.patterns):
@@ -75,10 +92,23 @@ def main():
             cells_path=args.cells
         )
 
-        # Plot view
-        logger.info(f"Plotting view {args.view}")
-        displayer.plot_view(args.view, args.output)
-        logger.info("Plotting completed successfully")
+        if args.view_all:
+            # Display each view
+            logger.info("Displaying all views")
+            view_idx = 0
+            while True:
+                try:
+                    logger.info(f"Displaying view {view_idx}")
+                    displayer.plot_view(view_idx)
+                    view_idx += 1
+                except ValueError:
+                    # When view_idx is out of range, we're done
+                    break
+        else:
+            # Plot single view
+            logger.info(f"Plotting view {args.view}")
+            displayer.plot_view(args.view, args.output)
+            logger.info("Plotting completed successfully")
 
     except Exception as e:
         logger.error(f"Error during plotting: {e}")

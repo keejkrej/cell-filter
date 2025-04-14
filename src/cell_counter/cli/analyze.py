@@ -27,10 +27,6 @@ from ..core.Analyzer import Analyzer
 import logging
 from pathlib import Path
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 def parse_channels(channels_str: str) -> list:
     """Parse channel string into a list of integers."""
     try:
@@ -105,11 +101,24 @@ def parse_args():
         type=int,
         help="Ending view index (exclusive). Required if --start-view is specified."
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging",
+    )
     return parser.parse_args()
 
 def main():
     """Main function."""
     args = parse_args()
+
+    # Configure logging
+    logging.basicConfig(level=logging.WARNING)  # Root logger at WARNING to suppress third-party messages
+    logger = logging.getLogger(__name__)
+
+    # Set package logger level based on --debug flag
+    package_logger = logging.getLogger("cell_counter")
+    package_logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
 
     # Check if patterns file exists
     if not os.path.exists(args.patterns):
@@ -144,8 +153,8 @@ def main():
             logger.info("Processing all views")
             analyzer.process_views(0, analyzer.generator.n_views)
         else:
-            logger.info(f"Processing views {args.start_view} to {args.end_view-1}")
-            analyzer.process_views(args.start_view, args.end_view)
+            logger.info(f"Processing views {args.start_view} to {args.end_view}")
+            analyzer.process_views(args.start_view, args.end_view + 1)
 
     except Exception as e:
         logger.error(f"Error during analysis: {e}")

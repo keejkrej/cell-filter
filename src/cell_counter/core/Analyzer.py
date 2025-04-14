@@ -4,13 +4,13 @@ Core analyzer functionality for cell-counter.
 
 import json
 from typing import Dict, List, Optional, Tuple
+
 from .CellGenerator import CellGenerator
 from .CellposeCounter import CellposeCounter
 import logging
 from pathlib import Path
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class Patterns:
@@ -249,17 +249,32 @@ class Analyzer:
                 logger.error(f"Error counting nuclei in frame {frame_idx}: {e}")
                 return
             
+            # Track changes for this frame
+            saved_patterns = []
+            dropped_many = []
+            dropped_zero = []
+            
             # Update pattern tracking based on counts
             for pattern_idx, n_count in zip(tracked_indices, counts):
                 if n_count == self.wanted:
                     self.patterns.save_frame(pattern_idx, frame_idx)
+                    saved_patterns.append(pattern_idx)
                     logger.debug(f"Pattern {pattern_idx} has {self.wanted} nuclei in frame {frame_idx}")
                 elif n_count > self.wanted:
                     self.patterns.drop_many(pattern_idx)
+                    dropped_many.append(pattern_idx)
                 elif n_count == 0:
                     self.patterns.drop_zero(pattern_idx)
+                    dropped_zero.append(pattern_idx)
             
-            logger.info(f"Processed frame {frame_idx}: {len(self.patterns.get_tracked_indices())} patterns remaining")
+            # Log detailed results for this frame
+            if saved_patterns:
+                logger.info(f"Frame {frame_idx}: Patterns with {self.wanted} nuclei: {saved_patterns}")
+            if dropped_many:
+                logger.info(f"Frame {frame_idx}: Dropped patterns (too many nuclei): {dropped_many}")
+            if dropped_zero:
+                logger.info(f"Frame {frame_idx}: Dropped patterns (no nuclei): {dropped_zero}")
+            logger.info(f"Frame {frame_idx}: Remaining tracked patterns: {self.patterns.get_tracked_indices()}")
             
         except Exception as e:
             logger.error(f"Error processing frame {frame_idx}: {e}")
@@ -302,7 +317,17 @@ class Analyzer:
                 "time_lapse": self.patterns.get_valid_patterns()
             }
             
-            logger.info(f"Analysis complete: {len(results['time_lapse'])} valid patterns found")
+            # Log final summary
+            logger.info(f"\nAnalysis complete:")
+            logger.info(f"  Final valid patterns: {list(results['time_lapse'].keys())}")
+            
+            # Log final dropped patterns summary
+            logger.info("\nFinal dropped patterns summary:")
+            if self.patterns.dropped_many:
+                logger.info(f"  Too many nuclei: {self.patterns.dropped_many}")
+            if self.patterns.dropped_zero:
+                logger.info(f"  No nuclei found: {self.patterns.dropped_zero}")
+            
             return results
             
         except Exception as e:

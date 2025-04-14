@@ -115,14 +115,31 @@ Classes should be organized in the following order:
 
 ## Logging
 
-### 1. Logging Levels
+### 1. Logging Configuration
+- Configure logging only at the application's entry point (CLI scripts)
+- Set root logger to INFO to suppress third-party debug messages
+- Add a --debug flag to control package logger level
+- Example:
+  ```python
+  # In CLI script (entry point)
+  logging.basicConfig(level=logging.INFO)  # Root logger at INFO to suppress third-party debug messages
+  
+  # Set package logger level based on --debug flag
+  package_logger = logging.getLogger("cell_counter")
+  package_logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
+  
+  # Create module-specific logger
+  logger = logging.getLogger(__name__)
+  ```
+
+### 2. Logging Levels
 - Use appropriate logging levels:
   - DEBUG: Detailed information for debugging
   - INFO: General information about program execution
   - ERROR: Error conditions that might still allow the program to continue
   - CRITICAL: Error conditions that prevent the program from continuing
 
-### 2. Logging Messages
+### 3. Logging Messages
 - Include relevant context in log messages
 - Use f-strings for dynamic content
 - Example:

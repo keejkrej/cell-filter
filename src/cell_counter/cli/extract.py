@@ -23,10 +23,6 @@ from ..core.Extractor import Extractor
 import logging
 from pathlib import Path
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
@@ -62,11 +58,24 @@ def parse_args():
         default=20,
         help="Minimum number of valid frames required for extraction (default: 20)",
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging",
+    )
     return parser.parse_args()
 
 def main():
     """Main function."""
     args = parse_args()
+
+    # Configure logging
+    logging.basicConfig(level=logging.WARNING)  # Root logger at WARNING to suppress third-party messages
+    logger = logging.getLogger(__name__)
+
+    # Set package logger level based on --debug flag
+    package_logger = logging.getLogger("cell_counter")
+    package_logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
 
     # Check if patterns file exists
     if not os.path.exists(args.patterns):
