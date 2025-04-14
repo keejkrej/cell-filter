@@ -111,7 +111,7 @@ class CellGenerator:
         Raises:
             ValueError: If files don't meet the required specifications
         """
-        if self.patterns_metadata['channels'] != 1:
+        if self.patterns_metadata['channels'] != 0:
             raise ValueError("Patterns ND2 file must contain exactly 1 channel")
         if self.cells_metadata['channels'] != 2:
             raise ValueError("Cells ND2 file must contain exactly 2 channels (nuclei and cytoplasm)")
