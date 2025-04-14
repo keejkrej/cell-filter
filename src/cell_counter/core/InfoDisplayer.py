@@ -75,12 +75,10 @@ class InfoDisplayer:
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
         
         for pattern_idx in range(self.generator.n_patterns):
-            # Get contour
-            contour = self.generator.get_contour(pattern_idx)
-            if contour is not None:
-                # Get bounding box coordinates
-                y_min, x_min = np.min(contour, axis=0)
-                y_max, x_max = np.max(contour, axis=0)
+            # Get bounding box coordinates
+            bbox = self.generator.bounding_boxes[pattern_idx]
+            if bbox is not None:
+                y_min, x_min, y_max, x_max = bbox
                 
                 # Draw bounding box
                 cv2.rectangle(image, 
