@@ -2,13 +2,11 @@
 Core info displayer functionality for cell-counter.
 """
 
-import json
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
-from typing import Dict, List, Optional, Tuple
-import cv2
+from typing import Optional
 import logging
 from .CellGenerator import CellGenerator
 
@@ -49,8 +47,8 @@ class InfoDisplayer:
         """
         try:
             self.generator = CellGenerator(patterns_path, cells_path)
-            self.patterns_path = patterns_path
-            self.cells_path = cells_path
+            self.patterns_path = str(Path(patterns_path).resolve())
+            self.cells_path = str(Path(cells_path).resolve())
             logger.info(f"Successfully initialized InfoDisplayer with patterns: {patterns_path} and cells: {cells_path}")
         except Exception as e:
             logger.error(f"Error initializing InfoDisplayer: {e}")

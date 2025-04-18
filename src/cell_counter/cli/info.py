@@ -21,7 +21,6 @@ import sys
 import os
 from ..core.InfoDisplayer import InfoDisplayer
 import logging
-from pathlib import Path
 
 def parse_args():
     """Parse command line arguments."""

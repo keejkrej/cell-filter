@@ -3,7 +3,7 @@ Core analyzer functionality for cell-counter.
 """
 
 import json
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 from .CellGenerator import CellGenerator
 from .CellposeCounter import CellposeCounter

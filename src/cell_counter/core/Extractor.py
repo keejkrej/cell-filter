@@ -52,9 +52,9 @@ class Extractor:
         """
         try:
             self.generator = CellGenerator(patterns_path, cells_path)
-            self.patterns_path = patterns_path
-            self.cells_path = cells_path
-            self.output_folder = output_folder
+            self.patterns_path = str(Path(patterns_path).resolve())
+            self.cells_path = str(Path(cells_path).resolve())
+            self.output_folder = str(Path(output_folder).resolve())
             logger.info(f"Successfully initialized Extractor with patterns: {patterns_path} and cells: {cells_path}")
         except Exception as e:
             logger.error(f"Error initializing Extractor: {e}")
@@ -64,7 +64,7 @@ class Extractor:
     # Private Methods
     # =====================================================================
 
-    def _refine_time_lapse(self, time_lapse: Dict[int, List[int]], view_idx: int) -> Dict[int, List[int]]:
+    def _refine_time_lapse(self, time_lapse: Dict[int, List[int]]) -> Dict[int, List[int]]:
         """
         Refine the time lapse dictionary by applying modifications to the frame indices.
         Splits time lapses when gaps between consecutive frames are larger than 6.
@@ -74,7 +74,6 @@ class Extractor:
         
         Args:
             time_lapse (Dict[int, List[int]]): Dictionary mapping pattern indices to frame indices
-            view_idx (int): Index of the current view
             
         Returns:
             Dict[int, List[int]]: Refined time lapse dictionary with split sequences,
@@ -175,7 +174,7 @@ class Extractor:
             logger.info(f"Processing view {view_idx}")
             
             # Refine time lapse
-            time_lapse = self._refine_time_lapse(time_lapse, view_idx)
+            time_lapse = self._refine_time_lapse(time_lapse)
             
             # Add head and tail frames
             time_lapse = self._add_head_tail(time_lapse)
