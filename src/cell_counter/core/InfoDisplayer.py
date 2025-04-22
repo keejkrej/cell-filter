@@ -122,7 +122,7 @@ class InfoDisplayer:
             ax = plt.gca()
             
             # Get patterns image and draw boxes
-            patterns_image = self.generator.thresh.copy()
+            patterns_image = np.copy(self.generator.thresh)
             annotated_image = self._draw_boxes(patterns_image)
             
             # Plot annotated image
