@@ -64,7 +64,7 @@ class Extractor:
     # Private Methods
     # =====================================================================
 
-    def _refine_time_lapse(self, time_lapse: Dict[int, List[int]]) -> Dict[int, List[int]]:
+    def _refine_time_lapse(self, time_lapse: Dict[int, List[int]], min_frames:int ) -> Dict[int, List[int]]:
         """
         Refine the time lapse dictionary by applying modifications to the frame indices.
         Splits time lapses when gaps between consecutive frames are larger than 6.
@@ -111,6 +111,8 @@ class Extractor:
             # Add sequences to refined time lapse with new pattern indices
             for i, (start, end) in enumerate(sequences):
                 # Format pattern index with leading zeros (3 digits)
+                if end - start <= min_frames:
+                    continue
                 new_pattern_idx = int(f"{pattern_idx:03d}{i:03d}")
                 refined_time_lapse[new_pattern_idx] = [start, end]
                 
@@ -148,6 +150,18 @@ class Extractor:
             
         return extended_time_lapse
 
+    def _normalize_image(self, image: np.ndarray) -> np.ndarray:
+        """
+        Normalize the image to the range [0, 255] and convert to uint8.
+        """
+        # Handle edge case where image is constant
+        if image.max() == image.min():
+            return np.zeros_like(image, dtype=np.uint8)
+            
+        # Normalize to [0,255] range
+        normalized = ((image - image.min()) / (image.max() - image.min()) * 255).astype(np.uint8)
+        return normalized
+
     def _process_time_series_file(self, json_file: Path, output_dir: Path, min_frames: int) -> None:
         """
         Process a single time series JSON file.
@@ -174,7 +188,7 @@ class Extractor:
             logger.info(f"Processing view {view_idx}")
             
             # Refine time lapse
-            time_lapse = self._refine_time_lapse(time_lapse)
+            time_lapse = self._refine_time_lapse(time_lapse, min_frames)
             
             # Add head and tail frames
             time_lapse = self._add_head_tail(time_lapse)
@@ -185,18 +199,21 @@ class Extractor:
             self.generator.process_patterns()
             
             # Process each pattern
-            for pattern_idx, (start_frame, end_frame) in time_lapse.items():
+            for pattern_sequence_idx, (start_frame, end_frame) in time_lapse.items():
                 # Calculate number of frames in this sequence
                 n_frames = end_frame - start_frame + 1
-                if n_frames < min_frames:
-                    continue
                     
                 # Create directory for this time lapse
                 # Extract original pattern index and sequence number
-                original_pattern = pattern_idx // 1000
-                sequence_num = pattern_idx % 1000
-                time_lapse_dir = output_dir / f"view_{view_idx:03d}_pattern_{original_pattern:03d}_{sequence_num:03d}"
-                time_lapse_dir.mkdir(parents=True, exist_ok=True)
+                pattern_idx = pattern_sequence_idx // 1000
+                sequence_idx = pattern_sequence_idx % 1000
+                filename_prefix = f"view_{view_idx:03d}_pattern_{pattern_idx:03d}_{sequence_idx:03d}"
+                frames_dir = output_dir / 'frames'
+                pattern_dir = output_dir / 'pattern'
+                json_dir = output_dir / 'json'
+                frames_dir.mkdir(parents=True, exist_ok=True)
+                pattern_dir.mkdir(parents=True, exist_ok=True)
+                json_dir.mkdir(parents=True, exist_ok=True)
                 
                 # Initialize stacks for nuclei and cytoplasm
                 nuclei_stack = []
@@ -211,6 +228,8 @@ class Extractor:
                         
                         nuclei = self.generator.extract_nuclei(pattern_idx)
                         cyto = self.generator.extract_cyto(pattern_idx)
+                        nuclei = self._normalize_image(nuclei)
+                        cyto = self._normalize_image(cyto)
                         
                         nuclei_stack.append(nuclei)
                         cyto_stack.append(cyto)
@@ -231,7 +250,7 @@ class Extractor:
                 rgb_stack[..., 1] = cyto_stack   # Green channel for cytoplasm
                 
                 # Save frame stack
-                frame_output_path = time_lapse_dir / "frames.tif"
+                frame_output_path = frames_dir / f"{filename_prefix}_frames.tif"
                 with warnings.catch_warnings():
                     warnings.filterwarnings('ignore', message='.*is a low contrast image.*')
                     imsave(frame_output_path, rgb_stack)
@@ -239,15 +258,15 @@ class Extractor:
                 # Extract and save pattern
                 try:
                     pattern = self.generator.extract_pattern(pattern_idx)
-                    pattern_stack = np.array([pattern] * n_frames)
                     
-                    pattern_output_path = time_lapse_dir / "pattern.tif"
+                    pattern_output_path = pattern_dir / f"{filename_prefix}_pattern.tif"
                     with warnings.catch_warnings():
                         warnings.filterwarnings('ignore', message='.*is a low contrast image.*')
-                        imsave(pattern_output_path, pattern_stack)
+                        imsave(pattern_output_path, pattern)
                     
                     # Save frame indices
-                    with open(time_lapse_dir / "frames.json", 'w') as f:
+                    json_output_path = json_dir / f"{filename_prefix}_frames.json"
+                    with open(json_output_path, 'w') as f:
                         json.dump({
                             "start_frame": start_frame,
                             "end_frame": end_frame,
