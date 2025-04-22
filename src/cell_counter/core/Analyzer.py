@@ -378,7 +378,7 @@ class Analyzer:
                 results = self.analyze_time_series(view_idx)
                 
                 # Save results immediately
-                view_output_path = output_path / f"time_series_{view_idx}.json"
+                view_output_path = output_path / f"time_series_{view_idx:03d}.json"
                 with open(view_output_path, 'w') as f:
                     json.dump(results, f, indent=2)
                 

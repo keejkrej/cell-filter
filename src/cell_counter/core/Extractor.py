@@ -310,7 +310,7 @@ class Extractor:
             
             # Find all time series JSON files
             time_series_dir = Path(time_series_dir)
-            json_files = list(time_series_dir.glob("time_series_*.json"))
+            json_files = sorted(list(time_series_dir.glob("time_series_*.json")))
             
             if not json_files:
                 raise ValueError(f"No time series JSON files found in {time_series_dir}")
