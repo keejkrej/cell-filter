@@ -228,8 +228,6 @@ class Extractor:
                         
                         nuclei = self.generator.extract_nuclei(pattern_idx)
                         cyto = self.generator.extract_cyto(pattern_idx)
-                        nuclei = self._normalize_image(nuclei)
-                        cyto = self._normalize_image(cyto)
                         
                         nuclei_stack.append(nuclei)
                         cyto_stack.append(cyto)
