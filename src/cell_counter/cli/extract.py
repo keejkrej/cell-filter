@@ -70,12 +70,13 @@ def main():
     args = parse_args()
 
     # Configure logging
-    logging.basicConfig(level=logging.WARNING)  # Root logger at WARNING to suppress third-party messages
-    logger = logging.getLogger(__name__)
-
-    # Set package logger level based on --debug flag
-    package_logger = logging.getLogger("cell_counter")
-    package_logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
+    logging.basicConfig(level=logging.WARNING, format='%(message)s')
+    
+    # Set package logger level before getting logger instances
+    logging.getLogger("cell_counter").setLevel(logging.DEBUG if args.debug else logging.INFO)
+    
+    # Get the logger instance with explicit package path
+    logger = logging.getLogger("cell_counter.cli.extract")
 
     # Check if patterns file exists
     if not os.path.exists(args.patterns):

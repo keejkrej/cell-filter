@@ -3,6 +3,7 @@ Core analyzer functionality for cell-counter.
 """
 
 import json
+import time
 from typing import Dict, List
 
 from .CellGenerator import CellGenerator
@@ -101,7 +102,6 @@ class Analyzer:
     nuclei counts and maintaining state of valid patterns.
     
     Attributes:
-        metadata (Dict[str, Any]): Analysis configuration and metadata
         generator (CellGenerator): Cell generator instance
         counter (CellposeCounter): Cell counter instance
         wanted (int): Desired number of nuclei per pattern
@@ -117,11 +117,9 @@ class Analyzer:
         patterns_path: str,
         cells_path: str,
         output_folder: str,
-        wanted: int = 3,
-        use_gpu: bool = True,
-        diameter: int = 15,
-        channels: str = "0,0",
-        model_type: str = "cyto3",
+        wanted: int,
+        use_gpu: bool,
+        diameter: int,
     ) -> None:
         """
         Initialize the Analyzer with configuration parameters.
@@ -133,27 +131,17 @@ class Analyzer:
             wanted (int): Desired number of nuclei per pattern
             use_gpu (bool): Whether to use GPU for cell counting
             diameter (int): Expected diameter of nuclei
-            channels (str): Channel configuration for cell counting
-            model_type (str): Model type for cell counting
             
         Raises:
             ValueError: If initialization fails
         """
-        self.metadata = {
-            "patterns_path": str(Path(patterns_path).resolve()),
-            "cells_path": str(Path(cells_path).resolve()),
-            "wanted_nuclei": wanted,
-            "use_gpu": use_gpu,
-            "diameter": diameter,
-            "channels": channels,
-            "model_type": model_type,
-        }
         self.output_folder = str(Path(output_folder).resolve())
+        self.diameter = diameter
 
         try:
             self._init_generator(patterns_path, cells_path)
-            self._init_counter(wanted, use_gpu, diameter, channels, model_type)
-            logger.info(f"Successfully initialized Analyzer with patterns: {patterns_path} and cells: {cells_path}")
+            self._init_counter(wanted, use_gpu)
+            logger.debug(f"Successfully initialized Analyzer with patterns: {patterns_path} and cells: {cells_path}")
         except Exception as e:
             logger.error(f"Error initializing Analyzer: {e}")
             raise ValueError(f"Error initializing Analyzer: {e}")
@@ -174,36 +162,28 @@ class Analyzer:
                 patterns_path=patterns_path,
                 cells_path=cells_path
             )
-            self.metadata["total_views"] = self.generator.n_views
-            self.metadata["total_frames"] = self.generator.n_frames
             logger.debug(f"Initialized generator with {self.generator.n_views} views and {self.generator.n_frames} frames")
         except Exception as e:
             logger.error(f"Error initializing generator: {e}")
             raise
     
-    def _init_counter(self, wanted: int, use_gpu: bool, diameter: int, channels: str, model_type: str) -> None:
+    def _init_counter(self, wanted: int, use_gpu: bool) -> None:
         """
         Initialize the cell counter.
         
         Args:
             wanted (int): Desired number of nuclei per pattern
             use_gpu (bool): Whether to use GPU for cell counting
-            diameter (int): Expected diameter of nuclei
-            channels (str): Channel configuration for cell counting
-            model_type (str): Model type for cell counting
             
         Raises:
             ValueError: If initialization fails
         """
         try:
             self.counter = CellposeCounter(
-                diameter=diameter,
-                channels=channels,
-                model_type=model_type,
                 use_gpu=use_gpu
             )
             self.wanted = wanted
-            logger.debug(f"Initialized counter with wanted={wanted}, diameter={diameter}, model_type={model_type}")
+            logger.debug(f"Initialized counter with wanted={wanted}")
         except Exception as e:
             logger.error(f"Error initializing counter: {e}")
             raise
@@ -244,7 +224,7 @@ class Analyzer:
             
             # Count nuclei for all patterns in this frame
             try:
-                counts = self.counter.count_nuclei(nuclei_list)
+                counts = self.counter.count_nuclei(nuclei_list, self.diameter)
             except Exception as e:
                 logger.error(f"Error counting nuclei in frame {frame_idx}: {e}")
                 return
@@ -269,12 +249,12 @@ class Analyzer:
             
             # Log detailed results for this frame
             if saved_patterns:
-                logger.info(f"Frame {frame_idx}: Patterns with {self.wanted} nuclei: {saved_patterns}")
+                logger.debug(f"Frame {frame_idx}: Patterns with {self.wanted} nuclei: {saved_patterns}")
             if dropped_many:
-                logger.info(f"Frame {frame_idx}: Dropped patterns (too many nuclei): {dropped_many}")
+                logger.debug(f"Frame {frame_idx}: Dropped patterns (too many nuclei): {dropped_many}")
             if dropped_zero:
-                logger.info(f"Frame {frame_idx}: Dropped patterns (no nuclei): {dropped_zero}")
-            logger.info(f"Frame {frame_idx}: Remaining tracked patterns: {self.patterns.get_tracked_indices()}")
+                logger.debug(f"Frame {frame_idx}: Dropped patterns (no nuclei): {dropped_zero}")
+            logger.debug(f"Frame {frame_idx}: Remaining tracked patterns: {self.patterns.get_tracked_indices()}")
             
         except Exception as e:
             logger.error(f"Error processing frame {frame_idx}: {e}")
@@ -313,20 +293,19 @@ class Analyzer:
             
             # Build results
             results = {
-                "metadata": self.metadata,
-                "time_lapse": self.patterns.get_valid_patterns()
+                "time_series": self.patterns.get_valid_patterns()
             }
             
             # Log final summary
-            logger.info(f"\nAnalysis complete:")
-            logger.info(f"  Final valid patterns: {list(results['time_lapse'].keys())}")
+            logger.debug(f"\nAnalysis complete:")
+            logger.debug(f"  Final valid patterns: {list(results['time_series'].keys())}")
             
             # Log final dropped patterns summary
-            logger.info("\nFinal dropped patterns summary:")
+            logger.debug("\nFinal dropped patterns summary:")
             if self.patterns.dropped_many:
-                logger.info(f"  Too many nuclei: {self.patterns.dropped_many}")
+                logger.debug(f"  Too many nuclei: {self.patterns.dropped_many}")
             if self.patterns.dropped_zero:
-                logger.info(f"  No nuclei found: {self.patterns.dropped_zero}")
+                logger.debug(f"  No nuclei found: {self.patterns.dropped_zero}")
             
             return results
             
@@ -361,11 +340,11 @@ class Analyzer:
             try:
                 with open(tracking_file, 'r') as f:
                     processed_views = set(json.load(f))
-                logger.info(f"Found {len(processed_views)} previously processed views")
+                logger.debug(f"Found {len(processed_views)} previously processed views")
             except Exception as e:
                 logger.warning(f"Error reading tracking file: {e}")
         
-        logger.info(f"Starting sequential processing for views {start_view} to {end_view-1}")
+        logger.debug(f"Starting sequential processing for views {start_view} to {end_view-1}")
         
         for view_idx in range(start_view, end_view):
             # Skip if already processed
@@ -375,7 +354,10 @@ class Analyzer:
                 
             try:
                 # Process the view
+                time_start = time.time()
                 results = self.analyze_time_series(view_idx)
+                time_end = time.time()
+                logger.info(f"Time taken to process view {view_idx}: {time_end - time_start} seconds")
                 
                 # Save results immediately
                 view_output_path = output_path / f"time_series_{view_idx:03d}.json"
@@ -387,12 +369,12 @@ class Analyzer:
                 with open(tracking_file, 'w') as f:
                     json.dump(sorted(list(processed_views)), f, indent=2)
                     
-                logger.info(f"Saved results for view {view_idx}")
+                logger.debug(f"Saved results for view {view_idx}")
             except Exception as e:
                 logger.error(f"Error processing view {view_idx}: {e}")
                 # Continue with next view even if this one fails
                 continue
                 
-        logger.info(f"Sequential processing complete for views {start_view} to {end_view-1}")
+        logger.debug(f"Sequential processing complete for views {start_view} to {end_view-1}")
         self.generator.close_files()
         

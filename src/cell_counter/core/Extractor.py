@@ -64,7 +64,7 @@ class Extractor:
     # Private Methods
     # =====================================================================
 
-    def _refine_time_lapse(self, time_lapse: Dict[int, List[int]], min_frames:int ) -> Dict[int, List[int]]:
+    def _refine_time_series(self, time_series: Dict[int, List[int]], min_frames:int ) -> Dict[int, List[int]]:
         """
         Refine the time lapse dictionary by applying modifications to the frame indices.
         Splits time lapses when gaps between consecutive frames are larger than 6.
@@ -73,16 +73,16 @@ class Extractor:
         Pattern indices are formatted with leading zeros (e.g., 000, 001).
         
         Args:
-            time_lapse (Dict[int, List[int]]): Dictionary mapping pattern indices to frame indices
+            time_series (Dict[int, List[int]]): Dictionary mapping pattern indices to frame indices
             
         Returns:
             Dict[int, List[int]]: Refined time lapse dictionary with split sequences,
                                  each sequence represented by [start_frame, end_frame]
         """
         MAX_GAP = 6
-        refined_time_lapse = {}
+        refined_time_series = {}
         
-        for pattern_idx, frames in time_lapse.items():
+        for pattern_idx, frames in time_series.items():
             if not frames:
                 continue
                 
@@ -114,41 +114,41 @@ class Extractor:
                 if end - start <= min_frames:
                     continue
                 new_pattern_idx = int(f"{pattern_idx:03d}{i:03d}")
-                refined_time_lapse[new_pattern_idx] = [start, end]
+                refined_time_series[new_pattern_idx] = [start, end]
                 
                 logger.debug(f"Split pattern {pattern_idx} into {len(sequences)} sequences")
                 logger.debug(f"Sequence {i}: frames {start} to {end}")
                 
-        return refined_time_lapse
+        return refined_time_series
 
-    def _add_head_tail(self, time_lapse: Dict[int, List[int]], n_frames: int = 3) -> Dict[int, List[int]]:
+    def _add_head_tail(self, time_series: Dict[int, List[int]], n_frames: int = 3) -> Dict[int, List[int]]:
         """
         Add extra frames at the beginning and end of each sequence for better inspection.
         
         Args:
-            time_lapse (Dict[int, List[int]]): Dictionary mapping pattern indices to [start_frame, end_frame]
+            time_series (Dict[int, List[int]]): Dictionary mapping pattern indices to [start_frame, end_frame]
             n_frames (int): Number of extra frames to add at each end (default: 3)
             
         Returns:
             Dict[int, List[int]]: Time lapse dictionary with added head and tail frames
         """
-        extended_time_lapse = {}
+        extended_time_series = {}
         
         # Get total number of frames from the generator
         total_frames = self.generator.n_frames
         
-        for pattern_idx, (start, end) in time_lapse.items():
+        for pattern_idx, (start, end) in time_series.items():
             # Add head frames (before start)
             new_start = max(0, start - n_frames)
             
             # Add tail frames (after end), but don't exceed total_frames
             new_end = min(total_frames - 1, end + n_frames)
             
-            extended_time_lapse[pattern_idx] = [new_start, new_end]
+            extended_time_series[pattern_idx] = [new_start, new_end]
             
             logger.debug(f"Extended pattern {pattern_idx} with {start-new_start} head frames and {new_end-end} tail frames")
             
-        return extended_time_lapse
+        return extended_time_series
 
     def _normalize_image(self, image: np.ndarray) -> np.ndarray:
         """
@@ -179,8 +179,8 @@ class Extractor:
             with open(json_file, 'r') as f:
                 data = json.load(f)
             
-            time_lapse = {
-                int(pattern_idx): frames for pattern_idx, frames in data['time_lapse'].items()
+            time_series = {
+                int(pattern_idx): frames for pattern_idx, frames in data['time_series'].items()
             }
             
             # Get view index from filename
@@ -188,10 +188,10 @@ class Extractor:
             logger.info(f"Processing view {view_idx}")
             
             # Refine time lapse
-            time_lapse = self._refine_time_lapse(time_lapse, min_frames)
+            time_series = self._refine_time_series(time_series, min_frames)
             
             # Add head and tail frames
-            time_lapse = self._add_head_tail(time_lapse)
+            time_series = self._add_head_tail(time_series)
             
             # Load view and patterns
             self.generator.load_view(view_idx)
@@ -199,7 +199,7 @@ class Extractor:
             self.generator.process_patterns()
             
             # Process each pattern
-            for pattern_sequence_idx, (start_frame, end_frame) in time_lapse.items():
+            for pattern_sequence_idx, (start_frame, end_frame) in time_series.items():
                 # Calculate number of frames in this sequence
                 n_frames = end_frame - start_frame + 1
                     

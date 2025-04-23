@@ -13,28 +13,20 @@ class CellposeCounter():
     
     def __init__(
         self,
-        diameter: int = 15,
-        channels: str = "0,0",
-        model_type: str = "cyto3",
-        use_gpu: bool = True
+        use_gpu: bool
     ):
         """
         Initialize the Cellpose counter.
         
         Args:
-            diameter: Expected diameter of cells in pixels
-            channels: Channel indices for Cellpose
-            model_type: Type of Cellpose model to use
             use_gpu: Whether to use GPU for Cellpose
         """
         self.model = models.Cellpose(
             gpu=use_gpu,
-            model_type=model_type
+            model_type="cyto3"
         )
-        self.diameter = diameter
-        self.channels = [int(x) for x in channels.split(",")]
     
-    def count_nuclei(self, images: Union[np.ndarray, List[np.ndarray]]) -> List[int]:
+    def count_nuclei(self, images: Union[np.ndarray, List[np.ndarray]], diameter: int) -> List[int]:
         """
         Count nuclei in one or more images using Cellpose.
         
@@ -52,8 +44,8 @@ class CellposeCounter():
         # Run Cellpose on all images
         masks_list, _, _, _ = self.model.eval(
             images,
-            diameter=self.diameter,
-            channels=self.channels
+            diameter=diameter,
+            channels=[0, 0]
         )
         
         # Count nuclei in each image

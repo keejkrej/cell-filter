@@ -25,7 +25,6 @@ import sys
 import os
 from ..core.Analyzer import Analyzer
 import logging
-from pathlib import Path
 
 def parse_channels(channels_str: str) -> list:
     """Parse channel string into a list of integers."""
@@ -64,27 +63,15 @@ def parse_args():
         help="Number of nuclei to look for (default: 3)",
     )
     parser.add_argument(
-        "--no-gpu",
-        action="store_true",
-        help="Don't use GPU for Cellpose",
-    )
-    parser.add_argument(
         "--diameter",
         type=int,
         default=15,
-        help="Expected diameter of cells in pixels (default: 15)",
+        help="Expected diameter of nuclei in pixels (default: 15)",
     )
     parser.add_argument(
-        "--channels",
-        type=str,
-        default="0,0",
-        help='Channel indices for Cellpose (default: "0,0")',
-    )
-    parser.add_argument(
-        "--model",
-        type=str,
-        default="cyto3",
-        help='Type of Cellpose model to use (default: "cyto3")',
+        "--no-gpu",
+        action="store_true",
+        help="Don't use GPU for Cellpose",
     )
     parser.add_argument(
         "--start-view",
@@ -92,14 +79,14 @@ def parse_args():
         help="Starting view index (inclusive)"
     )
     parser.add_argument(
-        "--all",
-        action="store_true",
-        help="Process all views"
-    )
-    parser.add_argument(
         "--end-view",
         type=int,
         help="Ending view index (exclusive). Required if --start-view is specified."
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Process all views"
     )
     parser.add_argument(
         "--debug",
@@ -113,26 +100,27 @@ def main():
     args = parse_args()
 
     # Configure logging
-    logging.basicConfig(level=logging.WARNING)  # Root logger at WARNING to suppress third-party messages
-    logger = logging.getLogger(__name__)
-
-    # Set package logger level based on --debug flag
-    package_logger = logging.getLogger("cell_counter")
-    package_logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
+    logging.basicConfig(level=logging.WARNING, format='%(message)s')
+    
+    # Set package logger level before getting logger instances
+    logging.getLogger("cell_counter").setLevel(logging.DEBUG if args.debug else logging.INFO)
+    
+    # Get the logger instance with explicit package path
+    logger = logging.getLogger("cell_counter.cli.analyze")
 
     # Check if patterns file exists
     if not os.path.exists(args.patterns):
-        print(f"Error: Patterns file not found: {args.patterns}")
+        logger.error(f"Error: Patterns file not found: {args.patterns}")
         sys.exit(1)
 
     # Check if cells file exists
     if not os.path.exists(args.cells):
-        print(f"Error: Cells file not found: {args.cells}")
+        logger.error(f"Error: Cells file not found: {args.cells}")
         sys.exit(1)
 
     # Validate arguments
     if args.start_view is not None and args.end_view is None:
-        print("--end-view is required when --start-view is specified")
+        logger.error("--end-view is required when --start-view is specified")
         sys.exit(1)
 
     try:
@@ -144,8 +132,6 @@ def main():
             wanted=args.wanted,
             use_gpu=not args.no_gpu,
             diameter=args.diameter,
-            channels=args.channels,
-            model_type=args.model
         )
 
         # Process views
@@ -154,7 +140,7 @@ def main():
             analyzer.process_views(0, analyzer.generator.n_views)
         else:
             logger.info(f"Processing views {args.start_view} to {args.end_view}")
-            analyzer.process_views(args.start_view, args.end_view + 1)
+            analyzer.process_views(args.start_view, args.end_view)
 
     except Exception as e:
         logger.error(f"Error during analysis: {e}")

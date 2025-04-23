@@ -110,7 +110,7 @@ class CellGenerator:
             self._init_patterns()
             self._init_cells()
             self._validate_files()
-            logger.info(f"Successfully initialized CellGenerator with patterns: {self.patterns_path} and cells: {self.cells_path}")
+            logger.debug(f"Successfully initialized CellGenerator with patterns: {self.patterns_path} and cells: {self.cells_path}")
         except Exception as e:
             self.close_files()
             logger.error(f"Error initializing ND2 readers: {e}")
@@ -164,7 +164,7 @@ class CellGenerator:
         
         self.n_views = self.cells_metadata['views']
         self.n_frames = self.cells_metadata['frames']
-        logger.info(f"Validated files: {self.n_views} views, {self.n_frames} frames")
+        logger.debug(f"Validated files: {self.n_views} views, {self.n_frames} frames")
 
     def _init_memory(self) -> None:
         """Initialize memory variables to default values."""
@@ -263,7 +263,7 @@ class CellGenerator:
                 logger.warning("All contours were removed during iterative filtering")
                 break
                 
-        logger.info(f"After {iteration + 1} iterations, CV reduced to {cv:.3f}")
+        logger.debug(f"After {iteration + 1} iterations, CV reduced to {cv:.3f}")
         
         # Now filter outliers using standard deviations
         mean_area = np.mean(current_areas)
@@ -293,7 +293,7 @@ class CellGenerator:
         # Sort contours by center
         contour_data.sort(key=lambda x: (x[0], x[1]))
             
-        logger.info(f"Filtered {len(contours)} contours to {len(contour_data)} using iterative area analysis")
+        logger.debug(f"Filtered {len(contours)} contours to {len(contour_data)} using iterative area analysis")
         return contour_data
     
     def _extract_region(self, frame: np.ndarray, pattern_idx: int) -> np.ndarray:
@@ -350,7 +350,7 @@ class CellGenerator:
         if view_idx >= self.n_views or view_idx < 0:
             raise ValueError(f"View index {view_idx} out of range (0-{self.n_views-1})")
         self.current_view = view_idx
-        logger.info(f"Loaded view {view_idx}")
+        logger.debug(f"Loaded view {view_idx}")
 
     def load_patterns(self) -> None:
         """
@@ -420,7 +420,7 @@ class CellGenerator:
         self.bounding_boxes = [x[3] for x in contour_data]
         self.centers = [x[0:2] for x in contour_data]
         self.n_patterns = len(self.contours)
-        logger.info(f"Processed {self.n_patterns} patterns")
+        logger.debug(f"Processed {self.n_patterns} patterns")
 
     def extract_nuclei(self, pattern_idx: int) -> np.ndarray:
         """
