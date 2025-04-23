@@ -369,7 +369,7 @@ class Analyzer:
                 with open(tracking_file, 'w') as f:
                     json.dump(sorted(list(processed_views)), f, indent=2)
                     
-                logger.debug(f"Saved results for view {view_idx}")
+                logger.info(f"Saved results for view {view_idx} to {view_output_path}")
             except Exception as e:
                 logger.error(f"Error processing view {view_idx}: {e}")
                 # Continue with next view even if this one fails

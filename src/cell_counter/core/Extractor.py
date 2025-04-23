@@ -271,7 +271,7 @@ class Extractor:
                             "n_frames": n_frames
                         }, f, indent=2)
                     
-                    logger.info(f"Saved time lapse for view {view_idx}, pattern {pattern_idx} with {n_frames} frames")
+                    logger.info(f"Saved time lapse of {n_frames} frames to {pattern_output_path}")
                 except Exception as e:
                     logger.warning(f"Error extracting pattern for pattern {pattern_idx}: {e}")
                     continue
@@ -318,9 +318,7 @@ class Extractor:
             # Process each time series file
             for json_file in json_files:
                 self._process_time_series_file(json_file, output_dir, min_frames)
-                
-            logger.info("Extraction completed successfully")
-            
+                            
         except Exception as e:
             logger.error(f"Error during extraction: {e}")
             raise ValueError(f"Error during extraction: {e}") 
