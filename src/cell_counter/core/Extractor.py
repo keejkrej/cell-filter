@@ -37,7 +37,9 @@ class Extractor:
         self,
         patterns_path: str,
         cells_path: str,
-        output_folder: str
+        output_folder: str,
+        nuclei_channel: int,
+        cyto_channel: int
     ) -> None:
         """
         Initialize the Extractor with paths to pattern and cell images.
@@ -50,15 +52,18 @@ class Extractor:
         Raises:
             ValueError: If initialization fails
         """
+        self.patterns_path = str(Path(patterns_path).resolve())
+        self.cells_path = str(Path(cells_path).resolve())
+        self.output_folder = str(Path(output_folder).resolve())
         try:
             self.generator = CellGenerator(
                 patterns_path,
                 cells_path,
-                parameters=CellGeneratorParameters()
+                parameters=CellGeneratorParameters(
+                    nuclei_channel=nuclei_channel,
+                    cyto_channel=cyto_channel
+                )
             )
-            self.patterns_path = str(Path(patterns_path).resolve())
-            self.cells_path = str(Path(cells_path).resolve())
-            self.output_folder = str(Path(output_folder).resolve())
             logger.info(f"Successfully initialized Extractor with patterns: {patterns_path} and cells: {cells_path}")
         except Exception as e:
             logger.error(f"Error initializing Extractor: {e}")

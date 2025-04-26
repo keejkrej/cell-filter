@@ -1,19 +1,34 @@
 """
 Info command for cell-counter.
-"""
 
-"""
+This script displays patterns images with bounding boxes and indices for visualization
+and inspection purposes. It can show individual views or cycle through all views
+in the dataset.
+
 Usage:
     After installing the package with `pip install -e .`, run:
     
-    # Basic usage
+    # Basic usage - display single view
     python -m cell_counter.cli.info --patterns <patterns_path> --cells <cells_path> --view <view_idx>
     
-    # Display all views
+    # Display all views sequentially
     python -m cell_counter.cli.info --patterns <patterns_path> --cells <cells_path> --view-all
     
     # Save plot to file (only works with single view)
     python -m cell_counter.cli.info --patterns <patterns_path> --cells <cells_path> --view <view_idx> --output <output_path>
+
+Arguments:
+    Required:
+        --patterns: Path to the patterns ND2 file
+        --cells: Path to the cells ND2 file containing nuclei and cytoplasm channels
+    
+    View Selection (one required):
+        --view: Index of the view to display
+        --view-all: Display all views sequentially
+    
+    Optional:
+        --output: Path to save the plot (only works with --view, not --view-all)
+        --debug: Enable debug logging
 """
 
 import argparse
@@ -23,7 +38,11 @@ from ..core import InfoDisplayer
 import logging
 
 def parse_args():
-    """Parse command line arguments."""
+    """Parse command line arguments.
+    
+    Returns:
+        argparse.Namespace: Parsed command line arguments
+    """
     parser = argparse.ArgumentParser(
         description="Display patterns image with bounding boxes and indices."
     )
@@ -63,7 +82,16 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    """Main function."""
+    """Main function to run the visualization pipeline.
+    
+    This function:
+    1. Parses command line arguments
+    2. Configures logging
+    3. Validates input files
+    4. Initializes the info displayer
+    5. Displays the requested view(s)
+    6. Saves plot if output path is specified
+    """
     args = parse_args()
 
     # Configure logging

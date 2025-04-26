@@ -120,6 +120,8 @@ class Analyzer:
         wanted: int,
         use_gpu: bool,
         diameter: int,
+        nuclei_channel: int,
+        cyto_channel: int
     ) -> None:
         """
         Initialize the Analyzer with configuration parameters.
@@ -139,14 +141,14 @@ class Analyzer:
         self.diameter = diameter
 
         try:
-            self._init_generator(patterns_path, cells_path)
+            self._init_generator(patterns_path, cells_path, nuclei_channel, cyto_channel)
             self._init_counter(wanted, use_gpu)
             logger.debug(f"Successfully initialized Analyzer with patterns: {patterns_path} and cells: {cells_path}")
         except Exception as e:
             logger.error(f"Error initializing Analyzer: {e}")
             raise ValueError(f"Error initializing Analyzer: {e}")
 
-    def _init_generator(self, patterns_path: str, cells_path: str) -> None:
+    def _init_generator(self, patterns_path: str, cells_path: str, nuclei_channel: int, cyto_channel: int) -> None:
         """
         Initialize the cell generator.
         
@@ -161,7 +163,10 @@ class Analyzer:
             self.generator = CellGenerator(
                 patterns_path=patterns_path,
                 cells_path=cells_path,
-                parameters=CellGeneratorParameters()
+                parameters=CellGeneratorParameters(
+                    nuclei_channel=nuclei_channel,
+                    cyto_channel=cyto_channel
+                )
             )
             logger.debug(f"Initialized generator with {self.generator.n_views} views and {self.generator.n_frames} frames")
         except Exception as e:

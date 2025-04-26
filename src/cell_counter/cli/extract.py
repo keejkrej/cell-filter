@@ -1,8 +1,10 @@
 """
 Extract command for cell-counter.
-"""
 
-"""
+This script extracts valid frames and patterns from time series analysis results.
+It processes the output from the analyze command to identify and save frames that meet
+the specified criteria for further analysis.
+
 Usage:
     After installing the package with `pip install -e .`, run:
     
@@ -11,9 +13,17 @@ Usage:
     
     # With custom parameters
     python -m cell_counter.cli.extract --patterns <patterns_path> --cells <cells_path> --time-series <time_series_dir> --output <output_dir> --min-frames 20
+
+Arguments:
+    Required:
+        --patterns: Path to the patterns ND2 file
+        --cells: Path to the cells ND2 file containing nuclei and cytoplasm channels
+        --time-series: Directory containing time series JSON files
+        --output: Directory to save extracted frames
     
-    Optional arguments:
-    --min-frames: Minimum number of valid frames required for extraction (default: 20)
+    Optional:
+        --min-frames: Minimum number of valid frames required for extraction (default: 20)
+        --debug: Enable debug logging
 """
 
 import argparse
@@ -24,7 +34,11 @@ import logging
 from pathlib import Path
 
 def parse_args():
-    """Parse command line arguments."""
+    """Parse command line arguments.
+    
+    Returns:
+        argparse.Namespace: Parsed command line arguments
+    """
     parser = argparse.ArgumentParser(
         description="Extract valid frames and patterns from time series analysis results."
     )
@@ -39,6 +53,18 @@ def parse_args():
         type=str,
         required=True,
         help="Path to the cells ND2 file containing nuclei and cytoplasm channels",
+    )
+    parser.add_argument(
+        "--nuclei-channel",
+        type=int,
+        default=1,
+        help="Channel index for nuclei (default: 1)",
+    )
+    parser.add_argument(
+        "--cyto-channel",
+        type=int,
+        default=0,
+        help="Channel index for cytoplasm (default: 0)",
     )
     parser.add_argument(
         "--time-series",
@@ -66,7 +92,16 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    """Main function."""
+    """Main function to run the extraction pipeline.
+    
+    This function:
+    1. Parses command line arguments
+    2. Configures logging
+    3. Validates input files and directories
+    4. Creates output directory if needed
+    5. Initializes the extractor
+    6. Performs the extraction process
+    """
     args = parse_args()
 
     # Configure logging
@@ -102,7 +137,9 @@ def main():
         extractor = Extractor(
             patterns_path=args.patterns,
             cells_path=args.cells,
-            output_folder=args.output
+            output_folder=args.output,
+            nuclei_channel=args.nuclei_channel,
+            cyto_channel=args.cyto_channel
         )
 
         # Extract frames

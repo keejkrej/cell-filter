@@ -42,8 +42,8 @@ class CellGeneratorParameters:
     edge_tolerance: int = 10
     morph_open_size: Tuple[int, int] = (3, 3)
     morph_close_size: Tuple[int, int] = (5, 5)
-    nuclei_channel: int = 1
-    cyto_channel: int = 0
+    nuclei_channel: int
+    cyto_channel: int
 
 class CellGenerator:
     """

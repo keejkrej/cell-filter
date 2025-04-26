@@ -21,7 +21,9 @@ python -m cell_counter.cli.analyze \
 --output /path/to/output/analysis \
 --start-view 0 \
 --end-view 10 \
---wanted 3
+--wanted 3 \
+--nuclei-channel 1 \
+--cyto-channel 0
 ```
 
 ## Extract
@@ -32,7 +34,9 @@ python -m cell_counter.cli.extract \
 --cells /path/to/20220525_MBAMB231.nd2 \
 --time-series /path/to/output/analysis \
 --output /path/to/output \
---min-frames 20
+--min-frames 20 \
+--nuclei-channel 1 \
+--cyto-channel 0
 ```
 
 # Code Structure
