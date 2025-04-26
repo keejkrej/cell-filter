@@ -23,7 +23,7 @@ Usage:
 import argparse
 import sys
 import os
-from ..core.Analyzer import Analyzer
+from ..core import Analyzer
 import logging
 
 def parse_channels(channels_str: str) -> list:

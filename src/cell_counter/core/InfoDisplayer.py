@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import cv2
 from typing import Optional
 import logging
-from .CellGenerator import CellGenerator
+from . import CellGenerator
 
 # Configure logging
 logger = logging.getLogger(__name__)

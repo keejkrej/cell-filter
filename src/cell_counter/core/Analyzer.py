@@ -6,8 +6,8 @@ import json
 import time
 from typing import Dict, List
 
-from .CellGenerator import CellGenerator
-from .CellposeCounter import CellposeCounter
+from . import CellGenerator, CellGeneratorParameters
+from . import CellposeCounter
 import logging
 from pathlib import Path
 
@@ -160,7 +160,8 @@ class Analyzer:
         try:
             self.generator = CellGenerator(
                 patterns_path=patterns_path,
-                cells_path=cells_path
+                cells_path=cells_path,
+                parameters=CellGeneratorParameters()
             )
             logger.debug(f"Initialized generator with {self.generator.n_views} views and {self.generator.n_frames} frames")
         except Exception as e:

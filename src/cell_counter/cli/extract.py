@@ -19,7 +19,7 @@ Usage:
 import argparse
 import sys
 import os
-from ..core.Extractor import Extractor
+from ..core import Extractor
 import logging
 from pathlib import Path
 

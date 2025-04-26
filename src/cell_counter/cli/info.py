@@ -19,7 +19,7 @@ Usage:
 import argparse
 import sys
 import os
-from ..core.InfoDisplayer import InfoDisplayer
+from ..core import InfoDisplayer
 import logging
 
 def parse_args():

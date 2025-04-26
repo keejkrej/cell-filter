@@ -4,14 +4,46 @@ Core cell generator functionality for cell-counter.
 
 import cv2
 import numpy as np
-from skimage import img_as_ubyte
 from nd2reader import ND2Reader
 from typing import List, Tuple
 import logging
 from pathlib import Path
+from dataclasses import dataclass
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+@dataclass
+class CellGeneratorParameters:
+    """
+    Parameters for the CellGenerator class.
+    
+    This dataclass contains all the parameters used for image processing and cell detection
+    in the CellGenerator class.
+    
+    Attributes:
+        gaussian_blur_size (Tuple[int, int]): Size of Gaussian blur kernel
+        bimodal_threshold (float): Threshold for coefficient of variation to determine if areas are bimodal
+        min_area_ratio (float): Minimum area ratio to mean for filtering small areas
+        max_iterations (int): Maximum number of iterations for iterative area filtering
+        std_deviations_for_outliers (int): Number of standard deviations for outlier filtering
+        edge_tolerance (int): Number of pixels to exclude from image edges
+        morph_open_size (Tuple[int, int]): Size of kernel for morphological opening
+        morph_close_size (Tuple[int, int]): Size of kernel for morphological closing
+        nuclei_channel (int): Channel index for nuclei
+        cyto_channel (int): Channel index for cytoplasm
+    """
+    
+    gaussian_blur_size: Tuple[int, int] = (11, 11)
+    bimodal_threshold: float = 0.1
+    min_area_ratio: float = 0.1
+    max_iterations: int = 10
+    std_deviations_for_outliers: int = 5
+    edge_tolerance: int = 10
+    morph_open_size: Tuple[int, int] = (3, 3)
+    morph_close_size: Tuple[int, int] = (5, 5)
+    nuclei_channel: int = 1
+    cyto_channel: int = 0
 
 class CellGenerator:
     """
@@ -38,17 +70,7 @@ class CellGenerator:
         centers (Optional[List[Tuple[int, int]]]): Pattern centers
         frame_nuclei (Optional[np.ndarray]): Current nuclei frame
         frame_cyto (Optional[np.ndarray]): Current cytoplasm frame
-        gaussian_blur_size (Tuple[int, int]): Size of Gaussian blur kernel
-        bimodal_threshold (float): Threshold for coefficient of variation to determine if areas are bimodal
-        min_area_ratio (float): Minimum area ratio to mean for filtering small areas
-        max_iterations (int): Maximum number of iterations for iterative area filtering
-        std_deviations_for_outliers (int): Number of standard deviations for outlier filtering
-        threshold_value (int): Threshold value for binary thresholding
-        edge_tolerance (int): Number of pixels to exclude from image edges
-        morph_open_size (Tuple[int, int]): Size of kernel for morphological opening
-        morph_close_size (Tuple[int, int]): Size of kernel for morphological closing
-        nuclei_channel (int): Channel index for nuclei (default: 0)
-        cyto_channel (int): Channel index for cytoplasm (default: 1)
+        parameters (CellGeneratorParameters): Parameters for image processing and cell detection
     """
 
     # =====================================================================
@@ -59,17 +81,7 @@ class CellGenerator:
         self, 
         patterns_path: str, 
         cells_path: str,
-        gaussian_blur_size: Tuple[int, int] = (11, 11),
-        bimodal_threshold: float = 0.1,
-        min_area_ratio: float = 0.1,
-        max_iterations: int = 10,
-        std_deviations_for_outliers: int = 5,
-        threshold_value: int = 1,
-        edge_tolerance: int = 10,
-        morph_open_size: Tuple[int, int] = (3, 3),
-        morph_close_size: Tuple[int, int] = (5, 5),
-        nuclei_channel: int = 1,
-        cyto_channel: int = 0
+        parameters: CellGeneratorParameters = None
     ) -> None:
         """
         Initialize the CellGenerator with paths to pattern and cell images.
@@ -77,34 +89,15 @@ class CellGenerator:
         Args:
             patterns_path (str): Path to the patterns ND2 file
             cells_path (str): Path to the cell ND2 file containing nuclei and cytoplasm channels
-            gaussian_blur_size (Tuple[int, int]): Size of Gaussian blur kernel
-            bimodal_threshold (float): Threshold for coefficient of variation to determine if areas are bimodal
-            min_area_ratio (float): Minimum area ratio to mean for filtering small areas
-            max_iterations (int): Maximum number of iterations for iterative area filtering
-            std_deviations_for_outliers (int): Number of standard deviations for outlier filtering
-            threshold_value (int): Threshold value for binary thresholding
-            edge_tolerance (int): Number of pixels to exclude from image edges
-            morph_open_size (Tuple[int, int]): Size of kernel for morphological opening (removes small noise)
-            morph_close_size (Tuple[int, int]): Size of kernel for morphological closing (fills small holes)
-            nuclei_channel (int): Channel index for nuclei (default: 0)
-            cyto_channel (int): Channel index for cytoplasm (default: 1)
+            parameters (CellGeneratorParameters, optional): Parameters for image processing and cell detection.
+                If None, default parameters will be used.
             
         Raises:
             ValueError: If initialization fails or files are invalid
         """
         self.patterns_path = str(Path(patterns_path).resolve())
         self.cells_path = str(Path(cells_path).resolve())
-        self.gaussian_blur_size = gaussian_blur_size
-        self.bimodal_threshold = bimodal_threshold
-        self.min_area_ratio = min_area_ratio
-        self.max_iterations = max_iterations
-        self.std_deviations_for_outliers = std_deviations_for_outliers
-        self.threshold_value = threshold_value
-        self.edge_tolerance = edge_tolerance
-        self.morph_open_size = morph_open_size
-        self.morph_close_size = morph_close_size
-        self.nuclei_channel = nuclei_channel
-        self.cyto_channel = cyto_channel
+        self.parameters = parameters if parameters is not None else CellGeneratorParameters()
         
         try:
             self._init_patterns()
@@ -201,12 +194,12 @@ class CellGenerator:
             raise ValueError("Image must not be None or empty")
             
         # Apply Gaussian blur to reduce noise
-        blur = cv2.GaussianBlur(image, self.gaussian_blur_size, 0)
+        blur = cv2.GaussianBlur(image, self.parameters.gaussian_blur_size, 0)
         
         # Apply binary thresholding
-        _, thresh = cv2.threshold(blur, self.threshold_value, 255, cv2.THRESH_BINARY)
-        thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, np.ones(self.morph_open_size, np.uint8))
-        thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, np.ones(self.morph_close_size, np.uint8))
+        _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, np.ones(self.parameters.morph_open_size, np.uint8))
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, np.ones(self.parameters.morph_close_size, np.uint8))
         
         # Find contours
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -238,14 +231,14 @@ class CellGenerator:
         current_contours = list(contours)
         current_areas = areas.copy()
         
-        for iteration in range(self.max_iterations):
+        for iteration in range(self.parameters.max_iterations):
             cv = np.std(current_areas) / np.mean(current_areas)
-            if cv < self.bimodal_threshold:
+            if cv < self.parameters.bimodal_threshold:
                 break
                 
             # Remove areas smaller than min_area_ratio of mean
             mean_area = np.mean(current_areas)
-            min_area = self.min_area_ratio * mean_area
+            min_area = self.parameters.min_area_ratio * mean_area
             
             # Create new lists of contours and areas
             new_contours = []
@@ -268,8 +261,8 @@ class CellGenerator:
         # Now filter outliers using standard deviations
         mean_area = np.mean(current_areas)
         std_area = np.std(current_areas)
-        lower_bound = mean_area - self.std_deviations_for_outliers * std_area
-        upper_bound = mean_area + self.std_deviations_for_outliers * std_area
+        lower_bound = mean_area - self.parameters.std_deviations_for_outliers * std_area
+        upper_bound = mean_area + self.parameters.std_deviations_for_outliers * std_area
         
         contour_data = []
         for i, contour in enumerate(current_contours):
@@ -280,10 +273,10 @@ class CellGenerator:
             x, y, w, h = cv2.boundingRect(contour)
             
             # Skip if too close to edges
-            if (x < self.edge_tolerance or 
-                y < self.edge_tolerance or 
-                x + w > image_shape[1] - self.edge_tolerance or 
-                y + h > image_shape[0] - self.edge_tolerance):
+            if (x < self.parameters.edge_tolerance or 
+                y < self.parameters.edge_tolerance or 
+                x + w > image_shape[1] - self.parameters.edge_tolerance or 
+                y + h > image_shape[0] - self.parameters.edge_tolerance):
                 continue
                 
             center_x = x + w // 2
@@ -360,7 +353,7 @@ class CellGenerator:
             ValueError: If loading fails
         """
         try:
-            self.patterns = img_as_ubyte(self.patterns_reader.get_frame_2D(c=0, t=0, v=self.current_view))
+            self.patterns = self.patterns_reader.get_frame_2D(c=0, t=0, v=self.current_view)
             logger.debug(f"Loaded patterns for view {self.current_view}")
         except Exception as e:
             logger.error(f"Error loading patterns: {e}")
@@ -379,8 +372,8 @@ class CellGenerator:
         if frame_idx >= self.n_frames:
             raise ValueError(f"Frame index {frame_idx} out of range (0-{self.n_frames-1})")
         try:
-            self.frame_nuclei = img_as_ubyte(self.cells_reader.get_frame_2D(c=self.nuclei_channel, t=frame_idx, v=self.current_view))
-            logger.debug(f"Loaded nuclei frame {frame_idx} for view {self.current_view} from channel {self.nuclei_channel}")
+            self.frame_nuclei = self.cells_reader.get_frame_2D(c=self.parameters.nuclei_channel, t=frame_idx, v=self.current_view)
+            logger.debug(f"Loaded nuclei frame {frame_idx} for view {self.current_view} from channel {self.parameters.nuclei_channel}")
         except Exception as e:
             logger.error(f"Error loading nuclei: {e}")
             raise ValueError(f"Error loading nuclei: {e}")
@@ -398,8 +391,8 @@ class CellGenerator:
         if frame_idx >= self.n_frames:
             raise ValueError(f"Frame index {frame_idx} out of range (0-{self.n_frames-1})")
         try:
-            self.frame_cyto = img_as_ubyte(self.cells_reader.get_frame_2D(c=self.cyto_channel, t=frame_idx, v=self.current_view))
-            logger.debug(f"Loaded cytoplasm frame {frame_idx} for view {self.current_view} from channel {self.cyto_channel}")
+            self.frame_cyto = self.cells_reader.get_frame_2D(c=self.parameters.cyto_channel, t=frame_idx, v=self.current_view)
+            logger.debug(f"Loaded cytoplasm frame {frame_idx} for view {self.current_view} from channel {self.parameters.cyto_channel}")
         except Exception as e:
             logger.error(f"Error loading cyto: {e}")
             raise ValueError(f"Error loading cyto: {e}")
@@ -413,9 +406,11 @@ class CellGenerator:
         """
         if self.patterns is None:
             raise ValueError("Patterns must be loaded before processing")
-            
-        contours, self.thresh = self._find_contours(self.patterns)
-        contour_data = self._refine_contours(contours, self.patterns.shape)
+        
+        self.patterns_norm = cv2.normalize(self.patterns, None, 0, 255, cv2.NORM_MINMAX)
+        self.patterns_norm = self.patterns_norm.astype(np.uint8)
+        contours, self.thresh = self._find_contours(self.patterns_norm)
+        contour_data = self._refine_contours(contours, self.patterns_norm.shape)
         self.contours = [x[2] for x in contour_data]
         self.bounding_boxes = [x[3] for x in contour_data]
         self.centers = [x[0:2] for x in contour_data]

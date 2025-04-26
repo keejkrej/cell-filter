@@ -5,11 +5,11 @@ Core extractor functionality for cell-counter.
 import json
 from pathlib import Path
 import numpy as np
-from skimage.io import imsave
+from imageio.v3 import imsave
 import warnings
-from .CellGenerator import CellGenerator
+from . import CellGenerator, CellGeneratorParameters
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -51,7 +51,11 @@ class Extractor:
             ValueError: If initialization fails
         """
         try:
-            self.generator = CellGenerator(patterns_path, cells_path)
+            self.generator = CellGenerator(
+                patterns_path,
+                cells_path,
+                parameters=CellGeneratorParameters()
+            )
             self.patterns_path = str(Path(patterns_path).resolve())
             self.cells_path = str(Path(cells_path).resolve())
             self.output_folder = str(Path(output_folder).resolve())
@@ -149,136 +153,135 @@ class Extractor:
             logger.debug(f"Extended pattern {pattern_idx} with {start-new_start} head frames and {new_end-end} tail frames")
             
         return extended_time_series
-
-    def _normalize_image(self, image: np.ndarray) -> np.ndarray:
+    
+    def _extract_frame_stack(self,
+                             pattern_idx: int,
+                             start_frame: int,
+                             end_frame: int,
+                             frame_output_path: Path,
+                             json_output_path: Path) -> None:
         """
-        Normalize the image to the range [0, 255] and convert to uint8.
+        Extract and save frame stack for a given pattern.
         """
-        # Handle edge case where image is constant
-        if image.max() == image.min():
-            return np.zeros_like(image, dtype=np.uint8)
+        # Initialize stacks for nuclei and cytoplasm
+        nuclei_stack = []
+        cyto_stack = []
+        # Extract frames
+        for frame_idx in range(start_frame, end_frame + 1):
+            # Load and extract both channels
+            self.generator.load_nuclei(frame_idx)
+            self.generator.load_cyto(frame_idx)
             
-        # Normalize to [0,255] range
-        normalized = ((image - image.min()) / (image.max() - image.min()) * 255).astype(np.uint8)
-        return normalized
+            nuclei = self.generator.extract_nuclei(pattern_idx)
+            cyto = self.generator.extract_cyto(pattern_idx)
+            
+            nuclei_stack.append(nuclei)
+            cyto_stack.append(cyto)
+        
+        if not nuclei_stack or not cyto_stack:
+            return
+            
+        # Convert stacks to numpy arrays
+        nuclei_stack = np.array(nuclei_stack)
+        cyto_stack = np.array(cyto_stack)
+        
+        # Calculate number of frames in this sequence
+        n_frames = end_frame - start_frame + 1
 
-    def _process_time_series_file(self, json_file: Path, output_dir: Path, min_frames: int) -> None:
+        # Create RGB stack (nuclei in red, cytoplasm in green)
+        rgb_stack = np.zeros((n_frames, nuclei_stack.shape[1], nuclei_stack.shape[2], 3))
+        rgb_stack[..., 0] = nuclei_stack  # Red channel for nuclei
+        rgb_stack[..., 1] = cyto_stack   # Green channel for cytoplasm
+        
+        # Save frame stack
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', message='.*is a low contrast image.*')
+            imsave(frame_output_path, rgb_stack)
+
+        # Save frame indices
+        with open(json_output_path, 'w') as f:
+            json.dump({
+                "start_frame": start_frame,
+                "end_frame": end_frame,
+                "n_frames": n_frames
+            }, f, indent=2)
+
+        logger.info(f"Saved pattern {pattern_idx} frames from {start_frame} to {end_frame} to {frame_output_path}")
+
+    def _save_pattern(self,
+                      pattern_idx: int,
+                      pattern_output_path: Path,
+                      ) -> None:
+        """
+        Extract and save pattern
+        """
+        # Extract pattern
+        pattern = self.generator.extract_pattern(pattern_idx)
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', message='.*is a low contrast image.*')
+            imsave(pattern_output_path, pattern)
+        
+        logger.info(f"Saved pattern {pattern_idx} image to {pattern_output_path}")
+
+    def _process_time_series(self, time_series: Dict, view_idx: int, output_dir: Path, min_frames: int) -> None:
         """
         Process a single time series JSON file.
         
         Args:
-            json_file (Path): Path to the time series JSON file
+            data (Dict): Time series data
+            view_idx (int): View index
             output_dir (Path): Directory to save extracted frames
             min_frames (int): Minimum number of frames required for extraction
             
         Raises:
             ValueError: If processing fails
-        """
-        try:
-            # Load time series analysis results
-            with open(json_file, 'r') as f:
-                data = json.load(f)
+        """     
+        # Refine time lapse
+        time_series = self._refine_time_series(time_series, min_frames)
+        
+        # Add head and tail frames
+        time_series = self._add_head_tail(time_series)
+        
+        # Load view and patterns
+        self.generator.load_view(view_idx)
+        self.generator.load_patterns()
+        self.generator.process_patterns()
+        
+        # Process each pattern
+        for pattern_sequence_idx, (start_frame, end_frame) in time_series.items():
+            # Extract original pattern index and sequence number
+            pattern_idx = pattern_sequence_idx // 1000
+            sequence_idx = pattern_sequence_idx % 1000
+
+            # Filenames and directories
+            filename_prefix = f"view_{view_idx:03d}_pattern_{pattern_idx:03d}_{sequence_idx:03d}"
+            frames_dir = output_dir / 'frames'
+            pattern_dir = output_dir / 'pattern'
+            json_dir = output_dir / 'json'
+            frames_dir.mkdir(parents=True, exist_ok=True)
+            pattern_dir.mkdir(parents=True, exist_ok=True)
+            json_dir.mkdir(parents=True, exist_ok=True)
+            frame_output_path = frames_dir / f"{filename_prefix}_frames.tif"
+            pattern_output_path = pattern_dir / f"{filename_prefix}_pattern.tif"
+            json_output_path = json_dir / f"{filename_prefix}_frames.json"
             
-            time_series = {
-                int(pattern_idx): frames for pattern_idx, frames in data['time_series'].items()
-            }
-            
-            # Get view index from filename
-            view_idx = int(json_file.stem.split('_')[-1])
-            logger.info(f"Processing view {view_idx}")
-            
-            # Refine time lapse
-            time_series = self._refine_time_series(time_series, min_frames)
-            
-            # Add head and tail frames
-            time_series = self._add_head_tail(time_series)
-            
-            # Load view and patterns
-            self.generator.load_view(view_idx)
-            self.generator.load_patterns()
-            self.generator.process_patterns()
-            
-            # Process each pattern
-            for pattern_sequence_idx, (start_frame, end_frame) in time_series.items():
-                # Calculate number of frames in this sequence
-                n_frames = end_frame - start_frame + 1
-                    
-                # Create directory for this time lapse
-                # Extract original pattern index and sequence number
-                pattern_idx = pattern_sequence_idx // 1000
-                sequence_idx = pattern_sequence_idx % 1000
-                filename_prefix = f"view_{view_idx:03d}_pattern_{pattern_idx:03d}_{sequence_idx:03d}"
-                frames_dir = output_dir / 'frames'
-                pattern_dir = output_dir / 'pattern'
-                json_dir = output_dir / 'json'
-                frames_dir.mkdir(parents=True, exist_ok=True)
-                pattern_dir.mkdir(parents=True, exist_ok=True)
-                json_dir.mkdir(parents=True, exist_ok=True)
-                
-                # Initialize stacks for nuclei and cytoplasm
-                nuclei_stack = []
-                cyto_stack = []
-                
-                # Extract frames
-                for frame_idx in range(start_frame, end_frame + 1):
-                    try:
-                        # Load and extract both channels
-                        self.generator.load_nuclei(frame_idx)
-                        self.generator.load_cyto(frame_idx)
-                        
-                        nuclei = self.generator.extract_nuclei(pattern_idx)
-                        cyto = self.generator.extract_cyto(pattern_idx)
-                        
-                        nuclei_stack.append(nuclei)
-                        cyto_stack.append(cyto)
-                    except Exception as e:
-                        logger.warning(f"Error extracting frame {frame_idx} for pattern {pattern_idx}: {e}")
-                        continue
-                
-                if not nuclei_stack or not cyto_stack:
-                    continue
-                    
-                # Convert stacks to numpy arrays
-                nuclei_stack = np.array(nuclei_stack)
-                cyto_stack = np.array(cyto_stack)
-                
-                # Create RGB stack (nuclei in red, cytoplasm in green)
-                rgb_stack = np.zeros((n_frames, nuclei_stack.shape[1], nuclei_stack.shape[2], 3), dtype=np.uint8)
-                rgb_stack[..., 0] = nuclei_stack  # Red channel for nuclei
-                rgb_stack[..., 1] = cyto_stack   # Green channel for cytoplasm
-                
-                # Save frame stack
-                frame_output_path = frames_dir / f"{filename_prefix}_frames.tif"
-                with warnings.catch_warnings():
-                    warnings.filterwarnings('ignore', message='.*is a low contrast image.*')
-                    imsave(frame_output_path, rgb_stack)
-                
-                # Extract and save pattern
-                try:
-                    pattern = self.generator.extract_pattern(pattern_idx)
-                    
-                    pattern_output_path = pattern_dir / f"{filename_prefix}_pattern.tif"
-                    with warnings.catch_warnings():
-                        warnings.filterwarnings('ignore', message='.*is a low contrast image.*')
-                        imsave(pattern_output_path, pattern)
-                    
-                    # Save frame indices
-                    json_output_path = json_dir / f"{filename_prefix}_frames.json"
-                    with open(json_output_path, 'w') as f:
-                        json.dump({
-                            "start_frame": start_frame,
-                            "end_frame": end_frame,
-                            "n_frames": n_frames
-                        }, f, indent=2)
-                    
-                    logger.info(f"Saved time lapse of {n_frames} frames to {pattern_output_path}")
-                except Exception as e:
-                    logger.warning(f"Error extracting pattern for pattern {pattern_idx}: {e}")
-                    continue
-                    
-        except Exception as e:
-            logger.error(f"Error processing {json_file}: {e}")
-            raise ValueError(f"Error processing {json_file}: {e}")
+            try:
+                self._extract_frame_stack(
+                    pattern_idx=pattern_idx,
+                    start_frame=start_frame,
+                    end_frame=end_frame,
+                    frame_output_path=frame_output_path,
+                    json_output_path=json_output_path,
+                )
+
+                self._save_pattern(
+                    pattern_idx=pattern_idx,
+                    pattern_output_path=pattern_output_path,
+                )
+            except Exception as e:
+                logger.warning(f"Error processing pattern {pattern_idx}: {e}")
+                continue
 
     # =====================================================================
     # Public Methods
@@ -317,8 +320,19 @@ class Extractor:
             
             # Process each time series file
             for json_file in json_files:
-                self._process_time_series_file(json_file, output_dir, min_frames)
-                            
+                try:
+                    with open(json_file, 'r') as f:
+                        data = json.load(f)
+                    time_series = {
+                        int(pattern_idx): frames for pattern_idx, frames in data['time_series'].items()
+                    }
+                    view_idx = int(json_file.stem.split('_')[-1])
+                    logger.info(f"Processing time series for view {view_idx}")
+                    self._process_time_series(time_series, view_idx, output_dir, min_frames)
+                except Exception as e:
+                    logger.error(f"Error processing {json_file}: {e}")
+                    raise ValueError(f"Error processing {json_file}: {e}")
+
         except Exception as e:
             logger.error(f"Error during extraction: {e}")
             raise ValueError(f"Error during extraction: {e}") 
