@@ -20,6 +20,9 @@ class PatternLocation:
         object.__setattr__(self, 'bbox', (min(x_coords), max(x_coords), min(y_coords), max(y_coords)))
     
 class BasePatternLocator(ABC):
+    config: dict
+    pattern_locations: List[PatternLocation]
+
     @abstractmethod
     def locate_pattern(self, image: np.ndarray) -> List[PatternLocation]:
         pass

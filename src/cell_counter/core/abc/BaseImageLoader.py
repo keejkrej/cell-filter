@@ -3,30 +3,11 @@ from typing import Iterator, List, Tuple
 import numpy as np
 
 class BaseImageLoader(ABC):
-    @property
-    @abstractmethod
-    def shape(self) -> Tuple[int, int]:
-        pass
-
-    @property
-    @abstractmethod
-    def n_frame(self) -> int:
-        pass
-
-    @property
-    @abstractmethod
-    def n_channel(self) -> int:
-        pass
-
-    @property
-    @abstractmethod
-    def n_view(self) -> int:
-        pass
-
-    @property
-    @abstractmethod
-    def channel_names(self) -> List[str]:
-        pass
+    shape: Tuple[int, int]
+    n_frame: int
+    n_channel: int
+    n_view: int
+    channel_names: List[str]
 
     @abstractmethod
     def load(self, path: str) -> None:
