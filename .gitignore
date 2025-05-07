@@ -20,6 +20,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
 # Virtual Environment
 venv/
 env/
@@ -28,14 +29,17 @@ ENV/
 .venv
 env.bak/
 venv.bak/
+
 # IDE specific files
 .idea/
 .vscode/
 *.swp
 *.swo
 .DS_Store
+
 # Jupyter Notebook
 .ipynb_checkpoints
+
 # Project specific
 data/simulated/
 data/samples/
@@ -57,12 +61,14 @@ data/samples/
 *.db
 *.sqlite
 *.sqlite3
+
 # Logs
 logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
 # Distribution / packaging
 .Python
 env/
@@ -81,6 +87,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -92,13 +99,17 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+
 # mypy
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
 # Pyre type checker
 .pyre/
+
 # pytype static type analyzer
 .pytype/
+
 # Cython debug symbols
 cython_debug/ 

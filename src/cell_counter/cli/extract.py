@@ -1,32 +1,41 @@
 """
 Extract command for cell-counter.
+
 This script extracts valid frames and patterns from time series analysis results.
 It processes the output from the analyze command to identify and save frames that meet
 the specified criteria for further analysis.
+
 Usage:
     After installing the package with `pip install -e .`, run:
+    
     # Basic usage
     python -m cell_counter.cli.extract --patterns <patterns_path> --cells <cells_path> --time-series <time_series_dir> --output <output_dir>
+    
     # With custom parameters
     python -m cell_counter.cli.extract --patterns <patterns_path> --cells <cells_path> --time-series <time_series_dir> --output <output_dir> --min-frames 20
+
 Arguments:
     Required:
         --patterns: Path to the patterns ND2 file
         --cells: Path to the cells ND2 file containing nuclei and cytoplasm channels
         --time-series: Directory containing time series JSON files
         --output: Directory to save extracted frames
+    
     Optional:
         --min-frames: Minimum number of valid frames required for extraction (default: 20)
         --debug: Enable debug logging
 """
+
 import argparse
 import sys
 import os
 from ..core import Extractor
 import logging
 from pathlib import Path
+
 def parse_args():
     """Parse command line arguments.
+    
     Returns:
         argparse.Namespace: Parsed command line arguments
     """
@@ -81,8 +90,10 @@ def parse_args():
         help="Enable debug logging",
     )
     return parser.parse_args()
+
 def main():
     """Main function to run the extraction pipeline.
+    
     This function:
     1. Parses command line arguments
     2. Configures logging
@@ -92,27 +103,35 @@ def main():
     6. Performs the extraction process
     """
     args = parse_args()
+
     # Configure logging
     logging.basicConfig(level=logging.WARNING, format='%(message)s')
+    
     # Set package logger level before getting logger instances
     logging.getLogger("cell_counter").setLevel(logging.DEBUG if args.debug else logging.INFO)
+    
     # Get the logger instance with explicit package path
     logger = logging.getLogger("cell_counter.cli.extract")
+
     # Check if patterns file exists
     if not os.path.exists(args.patterns):
         logger.error(f"Patterns file not found: {args.patterns}")
         sys.exit(1)
+
     # Check if cells file exists
     if not os.path.exists(args.cells):
         logger.error(f"Cells file not found: {args.cells}")
         sys.exit(1)
+
     # Check if time series directory exists
     if not os.path.exists(args.time_series):
         logger.error(f"Time series directory not found: {args.time_series}")
         sys.exit(1)
+
     # Create output directory if it doesn't exist
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
+
     try:
         # Initialize extractor
         extractor = Extractor(
@@ -122,6 +141,7 @@ def main():
             nuclei_channel=args.nuclei_channel,
             cyto_channel=args.cyto_channel
         )
+
         # Extract frames
         logger.info("Starting extraction process")
         extractor.extract(
@@ -129,8 +149,10 @@ def main():
             min_frames=args.min_frames
         )
         logger.info("Extraction completed successfully")
+
     except Exception as e:
         logger.error(f"Error during extraction: {e}")
         raise
+
 if __name__ == "__main__":
     main() 

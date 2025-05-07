@@ -1,18 +1,24 @@
 """
 Analyze command for cell-counter.
+
 This script processes time series data to track and analyze nuclei counts in microscopy images.
 It uses Cellpose for cell detection and segmentation.
+
 Usage:
     After installing the package with `pip install -e .`, run:
+    
     # Basic usage
     python -m cell_counter.cli.analyze --patterns <patterns_path> --cells <cells_path> --output <output_path>
+    
     # With custom parameters
     python -m cell_counter.cli.analyze --patterns <patterns_path> --cells <cells_path> --output <output_path> --wanted 3 --no-gpu --diameter 20
+
 Arguments:
     Required:
         --patterns: Path to the patterns image file
         --cells: Path to the cells image file containing nuclei and cytoplasm channels
         --output: Path to save the output JSON file
+    
     Optional:
         --wanted: Number of nuclei to look for (default: 3)
         --no-gpu: Disable GPU acceleration for Cellpose
@@ -24,13 +30,16 @@ Arguments:
         --all: Process all views
         --debug: Enable debug logging
 """
+
 import argparse
 import sys
 import os
 from ..core import Analyzer
 import logging
+
 def parse_args():
     """Parse command line arguments.
+    
     Returns:
         argparse.Namespace: Parsed command line arguments
     """
@@ -105,8 +114,10 @@ def parse_args():
         help="Enable debug logging",
     )
     return parser.parse_args()
+
 def main():
     """Main function to run the analysis pipeline.
+    
     This function:
     1. Parses command line arguments
     2. Configures logging
@@ -115,24 +126,31 @@ def main():
     5. Processes the specified views
     """
     args = parse_args()
+
     # Configure logging
     logging.basicConfig(level=logging.WARNING, format='%(message)s')
+    
     # Set package logger level before getting logger instances
     logging.getLogger("cell_counter").setLevel(logging.DEBUG if args.debug else logging.INFO)
+    
     # Get the logger instance with explicit package path
     logger = logging.getLogger("cell_counter.cli.analyze")
+
     # Check if patterns file exists
     if not os.path.exists(args.patterns):
         logger.error(f"Error: Patterns file not found: {args.patterns}")
         sys.exit(1)
+
     # Check if cells file exists
     if not os.path.exists(args.cells):
         logger.error(f"Error: Cells file not found: {args.cells}")
         sys.exit(1)
+
     # Validate arguments
     if args.start_view is not None and args.end_view is None:
         logger.error("--end-view is required when --start-view is specified")
         sys.exit(1)
+
     try:
         # Initialize analyzer
         analyzer = Analyzer(
@@ -145,6 +163,7 @@ def main():
             nuclei_channel=args.nuclei_channel,
             cyto_channel=args.cyto_channel,
         )
+
         # Process views
         if args.all:
             logger.info("Processing all views")
@@ -152,8 +171,10 @@ def main():
         else:
             logger.info(f"Processing views {args.start_view} to {args.end_view}")
             analyzer.process_views(args.start_view, args.end_view)
+
     except Exception as e:
         logger.error(f"Error during analysis: {e}")
         raise
+
 if __name__ == '__main__':
     main() 

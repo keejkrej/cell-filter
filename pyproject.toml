@@ -1,6 +1,7 @@
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
 [project]
 name = "cell-counter"
 version = "1.2.0"
@@ -20,5 +21,6 @@ dependencies = [
 requires-python = ">=3.12,<3.13"
 readme = "README.md"
 license = {text = "MIT"}
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/cell_counter"] 
