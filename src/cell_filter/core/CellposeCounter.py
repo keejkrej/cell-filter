@@ -1,5 +1,5 @@
 """
-Cellpose-based counter for cell-counter.
+Cellpose-based counter for cell-filter.
 """
 
 from typing import List, Union

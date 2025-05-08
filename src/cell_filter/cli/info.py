@@ -1,5 +1,5 @@
 """
-Info command for cell-counter.
+Info command for cell-filter.
 
 This script displays patterns images with bounding boxes and indices for visualization
 and inspection purposes. It can show individual views or cycle through all views
@@ -9,13 +9,13 @@ Usage:
     After installing the package with `pip install -e .`, run:
     
     # Basic usage - display single view
-    python -m cell_counter.cli.info --patterns <patterns_path> --cells <cells_path> --view <view_idx>
+    python -m cell_filter.cli.info --patterns <patterns_path> --cells <cells_path> --view <view_idx>
     
     # Display all views sequentially
-    python -m cell_counter.cli.info --patterns <patterns_path> --cells <cells_path> --view-all
+    python -m cell_filter.cli.info --patterns <patterns_path> --cells <cells_path> --view-all
     
     # Save plot to file (only works with single view)
-    python -m cell_counter.cli.info --patterns <patterns_path> --cells <cells_path> --view <view_idx> --output <output_path>
+    python -m cell_filter.cli.info --patterns <patterns_path> --cells <cells_path> --view <view_idx> --output <output_path>
 
 Arguments:
     Required:
@@ -98,10 +98,10 @@ def main():
     logging.basicConfig(level=logging.WARNING, format='%(message)s')  # Root logger at WARNING to suppress third-party messages
     
     # Set package logger level before getting logger instances
-    logging.getLogger("cell_counter").setLevel(logging.DEBUG if args.debug else logging.INFO)
+    logging.getLogger("cell_filter").setLevel(logging.DEBUG if args.debug else logging.INFO)
     
     # Get the logger instance with explicit package path
-    logger = logging.getLogger("cell_counter.cli.info")
+    logger = logging.getLogger("cell_filter.cli.info")
 
     # Check if patterns file exists
     if not os.path.exists(args.patterns):

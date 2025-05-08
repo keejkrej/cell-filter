@@ -1,5 +1,5 @@
 """
-Extract command for cell-counter.
+Extract command for cell-filter.
 
 This script extracts valid frames and patterns from time series analysis results.
 It processes the output from the analyze command to identify and save frames that meet
@@ -9,10 +9,10 @@ Usage:
     After installing the package with `pip install -e .`, run:
     
     # Basic usage
-    python -m cell_counter.cli.extract --patterns <patterns_path> --cells <cells_path> --time-series <time_series_dir> --output <output_dir>
+    python -m cell_filter.cli.extract --patterns <patterns_path> --cells <cells_path> --time-series <time_series_dir> --output <output_dir>
     
     # With custom parameters
-    python -m cell_counter.cli.extract --patterns <patterns_path> --cells <cells_path> --time-series <time_series_dir> --output <output_dir> --min-frames 20
+    python -m cell_filter.cli.extract --patterns <patterns_path> --cells <cells_path> --time-series <time_series_dir> --output <output_dir> --min-frames 20
 
 Arguments:
     Required:
@@ -108,10 +108,10 @@ def main():
     logging.basicConfig(level=logging.WARNING, format='%(message)s')
     
     # Set package logger level before getting logger instances
-    logging.getLogger("cell_counter").setLevel(logging.DEBUG if args.debug else logging.INFO)
+    logging.getLogger("cell_filter").setLevel(logging.DEBUG if args.debug else logging.INFO)
     
     # Get the logger instance with explicit package path
-    logger = logging.getLogger("cell_counter.cli.extract")
+    logger = logging.getLogger("cell_filter.cli.extract")
 
     # Check if patterns file exists
     if not os.path.exists(args.patterns):

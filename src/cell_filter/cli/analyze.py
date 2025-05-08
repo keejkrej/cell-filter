@@ -1,5 +1,5 @@
 """
-Analyze command for cell-counter.
+Analyze command for cell-filter.
 
 This script processes time series data to track and analyze nuclei counts in microscopy images.
 It uses Cellpose for cell detection and segmentation.
@@ -8,10 +8,10 @@ Usage:
     After installing the package with `pip install -e .`, run:
     
     # Basic usage
-    python -m cell_counter.cli.analyze --patterns <patterns_path> --cells <cells_path> --output <output_path>
+    python -m cell_filter.cli.analyze --patterns <patterns_path> --cells <cells_path> --output <output_path>
     
     # With custom parameters
-    python -m cell_counter.cli.analyze --patterns <patterns_path> --cells <cells_path> --output <output_path> --wanted 3 --no-gpu --diameter 20
+    python -m cell_filter.cli.analyze --patterns <patterns_path> --cells <cells_path> --output <output_path> --wanted 3 --no-gpu --diameter 20
 
 Arguments:
     Required:
@@ -131,10 +131,10 @@ def main():
     logging.basicConfig(level=logging.WARNING, format='%(message)s')
     
     # Set package logger level before getting logger instances
-    logging.getLogger("cell_counter").setLevel(logging.DEBUG if args.debug else logging.INFO)
+    logging.getLogger("cell_filter").setLevel(logging.DEBUG if args.debug else logging.INFO)
     
     # Get the logger instance with explicit package path
-    logger = logging.getLogger("cell_counter.cli.analyze")
+    logger = logging.getLogger("cell_filter.cli.analyze")
 
     # Check if patterns file exists
     if not os.path.exists(args.patterns):

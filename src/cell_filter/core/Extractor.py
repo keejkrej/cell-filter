@@ -1,5 +1,5 @@
 """
-Core extractor functionality for cell-counter.
+Core extractor functionality for cell-filter.
 """
 
 import json

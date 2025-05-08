@@ -1,10 +1,10 @@
 # Installation
 
 ```bash
-git clone https://github.com/keejkrej/cell-counter.git
+git clone https://github.com/keejkrej/cell-filter.git
 (or)
-git clone https://gitlab.physik.uni-muenchen.de/LDAP_ls-raedler/cell-counter.git
-cd cell-counter
+git clone https://gitlab.physik.uni-muenchen.de/LDAP_ls-raedler/cell-filter.git
+cd cell-filter
 pip install -e .
 ```
 
@@ -15,7 +15,7 @@ First analyze, then extract
 ## Analyze
 
 ```bash
-python -m cell_counter.cli.analyze \
+python -m cell_filter.cli.analyze \
 --patterns /path/to/20220525_patterns_end.nd2 \
 --cells /path/to/20220525_MBAMB231.nd2 \
 --output /path/to/output/analysis \
@@ -29,7 +29,7 @@ python -m cell_counter.cli.analyze \
 ## Extract
 
 ```bash
-python -m cell_counter.cli.extract \
+python -m cell_filter.cli.extract \
 --patterns /path/to/20220525_patterns_end.nd2 \
 --cells /path/to/20220525_MBAMB231.nd2 \
 --time-series /path/to/output/analysis \
@@ -43,14 +43,14 @@ python -m cell_counter.cli.extract \
 
 ## CLI
 
-- [`analyze.py`](src/cell_counter/cli/analyze.py)
-- [`extract.py`](src/cell_counter/cli/extract.py)
-- [`info.py`](src/cell_counter/cli/info.py)
+- [`analyze.py`](src/cell_filter/cli/analyze.py)
+- [`extract.py`](src/cell_filter/cli/extract.py)
+- [`info.py`](src/cell_filter/cli/info.py)
 
 ## Core
 
-- [`Analyzer.py`](src/cell_counter/core/Analyzer.py)
-- [`CellGenerator.py`](src/cell_counter/core/CellGenerator.py)
-- [`CellposeCounter.py`](src/cell_counter/core/CellposeCounter.py)
-- [`Extractor.py`](src/cell_counter/core/Extractor.py)
-- [`InfoDisplayer.py`](src/cell_counter/core/InfoDisplayer.py)
+- [`Analyzer.py`](src/cell_filter/core/Analyzer.py)
+- [`CellGenerator.py`](src/cell_filter/core/CellGenerator.py)
+- [`CellposeCounter.py`](src/cell_filter/core/CellposeCounter.py)
+- [`Extractor.py`](src/cell_filter/core/Extractor.py)
+- [`InfoDisplayer.py`](src/cell_filter/core/InfoDisplayer.py)

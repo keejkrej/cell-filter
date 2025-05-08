@@ -1,5 +1,5 @@
 """
-Core cell generator functionality for cell-counter.
+Core cell generator functionality for cell-filter.
 """
 
 import cv2

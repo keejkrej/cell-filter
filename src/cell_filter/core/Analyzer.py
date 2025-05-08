@@ -1,5 +1,5 @@
 """
-Core analyzer functionality for cell-counter.
+Core analyzer functionality for cell-filter.
 """
 
 import json

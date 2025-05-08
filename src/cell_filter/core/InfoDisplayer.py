@@ -1,5 +1,5 @@
 """
-Core info displayer functionality for cell-counter.
+Core info displayer functionality for cell-filter.
 """
 
 from pathlib import Path
