@@ -155,8 +155,8 @@ class CellGenerator:
         """
         if self.patterns_metadata['channels'] != 0:
             raise ValueError("Patterns ND2 file shouldn't have any channels")
-        if self.cells_metadata['channels'] != 2:
-            raise ValueError("Cells ND2 file must contain exactly 2 channels (nuclei and cytoplasm)")
+        # if self.cells_metadata['channels'] != 2:
+        #     raise ValueError("Cells ND2 file must contain exactly 2 channels (nuclei and cytoplasm)")
         if self.patterns_metadata['frames'] != 1:
             raise ValueError("Patterns ND2 file must contain exactly 1 frame")
         if self.patterns_metadata['views'] != self.cells_metadata['views']:
