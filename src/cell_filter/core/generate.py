@@ -9,7 +9,7 @@ from typing import List, Tuple
 import logging
 from pathlib import Path
 from dataclasses import dataclass
-
+import matplotlib.pyplot as plt
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -36,14 +36,13 @@ class CellGeneratorParameters:
     
     gaussian_blur_size: Tuple[int, int] = (11, 11)
     bimodal_threshold: float = 0.1
-    min_area_ratio: float = 0.1
+    min_area_ratio: float = 0.5
     max_iterations: int = 10
     std_deviations_for_outliers: int = 5
-    edge_tolerance: int = 10
-    morph_open_size: Tuple[int, int] = (3, 3)
-    morph_close_size: Tuple[int, int] = (5, 5)
-    nuclei_channel: int
-    cyto_channel: int
+    edge_tolerance: int = 5
+    morph_dilate_size: Tuple[int, int] = (5, 5)
+    nuclei_channel: int = 1
+    cyto_channel: int = 0
 
 class CellGenerator:
     """
@@ -57,8 +56,6 @@ class CellGenerator:
         cells_path (str): Path to the cell ND2 file
         patterns_reader (ND2Reader): Reader for patterns ND2 file
         cells_reader (ND2Reader): Reader for cells ND2 file
-        patterns_metadata (Dict[str, int]): Metadata for patterns file
-        cells_metadata (Dict[str, int]): Metadata for cells file
         n_views (int): Number of views in the files
         n_frames (int): Number of frames in the cells file
         current_view (int): Current view index
@@ -81,7 +78,7 @@ class CellGenerator:
         self, 
         patterns_path: str, 
         cells_path: str,
-        parameters: CellGeneratorParameters = None
+        parameters: CellGeneratorParameters
     ) -> None:
         """
         Initialize the CellGenerator with paths to pattern and cell images.
@@ -95,9 +92,9 @@ class CellGenerator:
         Raises:
             ValueError: If initialization fails or files are invalid
         """
-        self.patterns_path = str(Path(patterns_path).resolve())
-        self.cells_path = str(Path(cells_path).resolve())
-        self.parameters = parameters if parameters is not None else CellGeneratorParameters()
+        self.patterns_path = Path(patterns_path).resolve()
+        self.cells_path = Path(cells_path).resolve()
+        self.parameters = parameters
         
         try:
             self._init_patterns()
@@ -114,13 +111,11 @@ class CellGenerator:
     def _init_patterns(self) -> None:
         """Initialize the patterns reader and metadata."""
         try:
-            self.patterns_reader = ND2Reader(self.patterns_path)
-            self.patterns_metadata = {
-                'channels': self.patterns_reader.sizes.get('c', 0),
-                'frames': self.patterns_reader.sizes.get('t', 0),
-                'views': self.patterns_reader.sizes.get('v', 0),
-            }
-            logger.debug(f"Patterns metadata: {self.patterns_metadata}")
+            self.patterns_reader = ND2Reader(str(self.patterns_path))
+            self.pattern_channels = self.patterns_reader.sizes.get('c', 0)
+            self.pattern_frames = self.patterns_reader.sizes.get('t', 0)
+            self.pattern_views = self.patterns_reader.sizes.get('v', 0)
+            logger.debug(f"Channels: {self.pattern_channels}, Frames: {self.pattern_frames}, Views: {self.pattern_views}")
         except Exception as e:
             logger.error(f"Error initializing patterns reader: {e}")
             raise
@@ -128,13 +123,11 @@ class CellGenerator:
     def _init_cells(self) -> None:
         """Initialize the cells reader and metadata."""
         try:
-            self.cells_reader = ND2Reader(self.cells_path)
-            self.cells_metadata = {
-                'channels': self.cells_reader.sizes.get('c', 0),
-                'frames': self.cells_reader.sizes.get('t', 0),
-                'views': self.cells_reader.sizes.get('v', 0),
-            }
-            logger.debug(f"Cells metadata: {self.cells_metadata}")
+            self.cells_reader = ND2Reader(str(self.cells_path))
+            self.cells_channels = self.cells_reader.sizes.get('c', 0)
+            self.cells_frames = self.cells_reader.sizes.get('t', 0)
+            self.cells_views = self.cells_reader.sizes.get('v', 0)
+            logger.debug(f"Channels: {self.cells_channels}, Frames: {self.cells_frames}, Views: {self.cells_views}")
         except Exception as e:
             logger.error(f"Error initializing cells reader: {e}")
             raise
@@ -146,17 +139,17 @@ class CellGenerator:
         Raises:
             ValueError: If files don't meet the required specifications
         """
-        if self.patterns_metadata['channels'] != 0:
+        if self.pattern_channels != 0:
             raise ValueError("Patterns ND2 file shouldn't have any channels")
-        if self.cells_metadata['channels'] != 2:
-            raise ValueError("Cells ND2 file must contain exactly 2 channels (nuclei and cytoplasm)")
-        if self.patterns_metadata['frames'] != 1:
+        if self.pattern_frames != 1:
             raise ValueError("Patterns ND2 file must contain exactly 1 frame")
-        if self.patterns_metadata['views'] != self.cells_metadata['views']:
+        if self.pattern_views != self.cells_views:
             raise ValueError("Patterns and cells ND2 files must contain the same number of views")
+        if self.cells_channels < 2:
+            raise ValueError("Cells ND2 file must contain at least 2 channels")
         
-        self.n_views = self.cells_metadata['views']
-        self.n_frames = self.cells_metadata['frames']
+        self.n_views = self.cells_views
+        self.n_frames = self.cells_frames
         logger.debug(f"Validated files: {self.n_views} views, {self.n_frames} frames")
 
     def _init_memory(self) -> None:
@@ -177,6 +170,30 @@ class CellGenerator:
     # Private Methods
     # =====================================================================
 
+    def _normalize(self, image: np.ndarray, low: int, high: int) -> np.ndarray:
+        """
+        Normalize an image to a range of 0-255.
+        
+        Args:
+            image (np.ndarray): Input image to normalize
+            
+        Returns:
+            np.ndarray: Normalized image
+            
+        Raises:
+            ValueError: If image is None or empty
+        """
+        if image is None or image.size == 0:
+            raise ValueError("Image must not be None or empty")
+        
+        percentile_high = np.percentile(image, high)
+        percentile_low = np.percentile(image, low)
+        image = np.clip(image, percentile_low, percentile_high)
+        image = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX)
+        image = image.astype(np.uint8)
+
+        return image
+
     def _find_contours(self, image: np.ndarray) -> List[np.ndarray]:
         """
         Find contours in an image using thresholding and contour detection.
@@ -195,14 +212,17 @@ class CellGenerator:
             
         # Apply Gaussian blur to reduce noise
         blur = cv2.GaussianBlur(image, self.parameters.gaussian_blur_size, 0)
-        
-        # Apply binary thresholding
+
+        # Apply thresholding
         _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, np.ones(self.parameters.morph_open_size, np.uint8))
-        thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, np.ones(self.parameters.morph_close_size, np.uint8))
-        
+
+        # Apply morphological operations
+        kernel = np.ones(self.parameters.morph_dilate_size, np.uint8)
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_DILATE, kernel)
+
         # Find contours
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
         logger.debug(f"Found {len(contours)} contours in image")
         
         return contours, thresh
@@ -373,6 +393,8 @@ class CellGenerator:
             raise ValueError(f"Frame index {frame_idx} out of range (0-{self.n_frames-1})")
         try:
             self.frame_nuclei = self.cells_reader.get_frame_2D(c=self.parameters.nuclei_channel, t=frame_idx, v=self.current_view)
+            plt.imshow(self.frame_nuclei)
+            plt.show()
             logger.debug(f"Loaded nuclei frame {frame_idx} for view {self.current_view} from channel {self.parameters.nuclei_channel}")
         except Exception as e:
             logger.error(f"Error loading nuclei: {e}")
@@ -407,8 +429,7 @@ class CellGenerator:
         if self.patterns is None:
             raise ValueError("Patterns must be loaded before processing")
         
-        self.patterns_norm = cv2.normalize(self.patterns, None, 0, 255, cv2.NORM_MINMAX)
-        self.patterns_norm = self.patterns_norm.astype(np.uint8)
+        self.patterns_norm = self._normalize(self.patterns, 10, 90)
         contours, self.thresh = self._find_contours(self.patterns_norm)
         contour_data = self._refine_contours(contours, self.patterns_norm.shape)
         self.contours = [x[2] for x in contour_data]

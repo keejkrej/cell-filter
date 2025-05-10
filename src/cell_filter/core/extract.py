@@ -5,9 +5,9 @@ Core extractor functionality for cell-filter.
 import json
 from pathlib import Path
 import numpy as np
-from imageio.v3 import imsave
+from imageio.v3 import imwrite
 import warnings
-from . import CellGenerator, CellGeneratorParameters
+from .generate import CellGenerator, CellGeneratorParameters
 import logging
 from typing import Dict, List
 
@@ -201,7 +201,7 @@ class Extractor:
         # Save frame stack
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', message='.*is a low contrast image.*')
-            imsave(frame_output_path, rgb_stack)
+            imwrite(frame_output_path, rgb_stack)
 
         # Save frame indices
         with open(json_output_path, 'w') as f:
@@ -225,7 +225,7 @@ class Extractor:
         
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', message='.*is a low contrast image.*')
-            imsave(pattern_output_path, pattern)
+            imwrite(pattern_output_path, pattern)
         
         logger.info(f"Saved pattern {pattern_idx} image to {pattern_output_path}")
 

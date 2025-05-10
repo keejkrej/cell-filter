@@ -34,7 +34,7 @@ Arguments:
 import argparse
 import sys
 import os
-from ..core import Analyzer
+from ..core.analyze import Analyzer
 import logging
 
 def parse_args():

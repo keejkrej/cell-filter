@@ -12,6 +12,16 @@ pip install -e .
 
 First analyze, then extract
 
+## Info
+
+```bash
+python -m cell_filter.cli.info \
+--patterns /path/to/20220525_patterns_end.nd2 \
+--cells /path/to/20220525_MBAMB231.nd2 \
+--view 0 \
+--output /path/to/output/analysis \
+```
+
 ## Analyze
 
 ```bash

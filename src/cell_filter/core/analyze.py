@@ -6,8 +6,8 @@ import json
 import time
 from typing import Dict, List
 
-from . import CellGenerator, CellGeneratorParameters
-from . import CellposeCounter
+from .generate import CellGenerator, CellGeneratorParameters
+from .count import CellposeCounter
 import logging
 from pathlib import Path
 

@@ -1,5 +1,5 @@
 """
-Info command for cell-filter.
+Pattern command for cell-filter.
 
 This script displays patterns images with bounding boxes and indices for visualization
 and inspection purposes. It can show individual views or cycle through all views
@@ -9,18 +9,20 @@ Usage:
     After installing the package with `pip install -e .`, run:
     
     # Basic usage - display single view
-    python -m cell_filter.cli.info --patterns <patterns_path> --cells <cells_path> --view <view_idx>
+    python -m cell_filter.cli.pattern --patterns <patterns_path> --cells <cells_path> --view <view_idx>
     
     # Display all views sequentially
-    python -m cell_filter.cli.info --patterns <patterns_path> --cells <cells_path> --view-all
+    python -m cell_filter.cli.pattern --patterns <patterns_path> --cells <cells_path> --view-all
     
     # Save plot to file (only works with single view)
-    python -m cell_filter.cli.info --patterns <patterns_path> --cells <cells_path> --view <view_idx> --output <output_path>
+    python -m cell_filter.cli.pattern --patterns <patterns_path> --cells <cells_path> --view <view_idx> --output <output_path>
 
 Arguments:
     Required:
         --patterns: Path to the patterns ND2 file
         --cells: Path to the cells ND2 file containing nuclei and cytoplasm channels
+        --nuclei-channel: Channel index for nuclei (default: 1)
+        --cyto-channel: Channel index for cytoplasm (default: 0)
     
     View Selection (one required):
         --view: Index of the view to display
@@ -34,7 +36,7 @@ Arguments:
 import argparse
 import sys
 import os
-from ..core import InfoDisplayer
+from ..core.pattern import PatternDisplayer
 import logging
 
 def parse_args():
@@ -58,6 +60,18 @@ def parse_args():
         required=True,
         help="Path to the cells ND2 file containing nuclei and cytoplasm channels",
     )
+    parser.add_argument(
+        "--nuclei-channel",
+        type=int,
+        default=1,
+        help="Channel index for nuclei (default: 1)",
+    )
+    parser.add_argument(
+        "--cyto-channel",
+        type=int,
+        default=0,
+        help="Channel index for cytoplasm (default: 0)",
+    )
     view_group = parser.add_mutually_exclusive_group(required=True)
     view_group.add_argument(
         "--view",
@@ -72,6 +86,7 @@ def parse_args():
     parser.add_argument(
         "--output",
         type=str,
+        default=None,
         help="Path to save the plot (only works with --view, not --view-all)",
     )
     parser.add_argument(
@@ -115,34 +130,34 @@ def main():
 
     try:
         # Initialize info displayer
-        displayer = InfoDisplayer(
+        displayer = PatternDisplayer(
             patterns_path=args.patterns,
-            cells_path=args.cells
+            cells_path=args.cells,
+            nuclei_channel=args.nuclei_channel,
+            cyto_channel=args.cyto_channel
         )
 
         if args.view_all:
             # Display each view
             logger.info("Displaying all views")
             view_idx = 0
-            while True:
+            for view_idx in range(displayer.n_views):
                 try:
                     logger.info(f"Displaying view {view_idx}")
                     displayer.plot_view(view_idx)
-                    view_idx += 1
-                except ValueError:
-                    # When view_idx is out of range, we're done
-                    break
+                except Exception as e:
+                    logger.error(f"Error displaying view {view_idx}: {e}")
+                    raise
         else:
             # Plot single view
             logger.info(f"Plotting view {args.view}")
             displayer.plot_view(args.view, args.output)
             logger.info("Plotting completed successfully")
+        displayer.close()
 
     except Exception as e:
         logger.error(f"Error during plotting: {e}")
         raise
-    finally:
-        displayer.close()
 
 if __name__ == "__main__":
     main() 

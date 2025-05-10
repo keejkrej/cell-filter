@@ -1,5 +1,5 @@
 """
-Core info displayer functionality for cell-filter.
+Core pattern displayer functionality for cell-filter.
 """
 
 from pathlib import Path
@@ -8,14 +8,14 @@ import matplotlib.pyplot as plt
 import cv2
 from typing import Optional
 import logging
-from . import CellGenerator
+from .generate import CellGenerator, CellGeneratorParameters
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
-class InfoDisplayer:
+class PatternDisplayer:
     """
-    A class for displaying information about patterns.
+    A class for displaying patterns.
     
     This class provides functionality to visualize the patterns image for a specific view,
     with bounding boxes and pattern indices overlaid on top.
@@ -33,7 +33,9 @@ class InfoDisplayer:
     def __init__(
         self,
         patterns_path: str,
-        cells_path: str
+        cells_path: str,
+        nuclei_channel: int,
+        cyto_channel: int
     ) -> None:
         """
         Initialize the InfoDisplayer with paths to pattern and cell images.
@@ -46,13 +48,19 @@ class InfoDisplayer:
             ValueError: If initialization fails
         """
         try:
-            self.generator = CellGenerator(patterns_path, cells_path)
-            self.patterns_path = str(Path(patterns_path).resolve())
-            self.cells_path = str(Path(cells_path).resolve())
-            logger.info(f"Successfully initialized InfoDisplayer with patterns: {patterns_path} and cells: {cells_path}")
+            self.generator = CellGenerator(
+                patterns_path,
+                cells_path,
+                CellGeneratorParameters(
+                    nuclei_channel=nuclei_channel,
+                    cyto_channel=cyto_channel
+                )
+            )
+            self.n_views = self.generator.pattern_views
+            logger.info(f"Successfully initialized PatternDisplayer with patterns: {patterns_path} and cells: {cells_path}")
         except Exception as e:
-            logger.error(f"Error initializing InfoDisplayer: {e}")
-            raise ValueError(f"Error initializing InfoDisplayer: {e}")
+            logger.error(f"Error initializing PatternDisplayer: {e}")
+            raise ValueError(f"Error initializing PatternDisplayer: {e}")
 
     # =====================================================================
     # Private Methods

@@ -29,7 +29,7 @@ Arguments:
 import argparse
 import sys
 import os
-from ..core import Extractor
+from ..core.extract import Extractor
 import logging
 from pathlib import Path
 
