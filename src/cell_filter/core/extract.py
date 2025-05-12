@@ -177,8 +177,8 @@ class Extractor:
             self.generator.load_nuclei(frame_idx)
             self.generator.load_cyto(frame_idx)
             
-            nuclei = self.generator.extract_nuclei(pattern_idx, normalize=False)
-            cyto = self.generator.extract_cyto(pattern_idx, normalize=False)
+            nuclei = self.generator.extract_nuclei(pattern_idx)
+            cyto = self.generator.extract_cyto(pattern_idx)
             
             nuclei_stack.append(nuclei)
             cyto_stack.append(cyto)

@@ -217,7 +217,7 @@ class Analyzer:
             tracked_indices = self.patterns.get_tracked_indices()
             for pattern_idx in tracked_indices:
                 try:
-                    nuclei = self.generator.extract_nuclei(pattern_idx)
+                    nuclei = self.generator.extract_nuclei(pattern_idx, normalize=True)
                     nuclei_list.append(nuclei)
                 except Exception as e:
                     logger.warning(f"Error extracting nuclei for frame {frame_idx}, pattern {pattern_idx}: {e}")

@@ -461,7 +461,7 @@ class CellGenerator:
         self.n_patterns = len(self.contours)
         logger.debug(f"Processed {self.n_patterns} patterns")
 
-    def extract_nuclei(self, pattern_idx: int, normalize: bool = True) -> np.ndarray:
+    def extract_nuclei(self, pattern_idx: int, normalize: bool = False) -> np.ndarray:
         """
         Extract nuclei region for a specific pattern.
         
@@ -478,7 +478,7 @@ class CellGenerator:
             raise ValueError("Nuclei frame must be loaded before extraction")
         return self._extract_region(self.frame_nuclei, pattern_idx, normalize)
     
-    def extract_cyto(self, pattern_idx: int, normalize: bool = True) -> np.ndarray:
+    def extract_cyto(self, pattern_idx: int, normalize: bool = False) -> np.ndarray:
         """
         Extract cytoplasm region for a specific pattern.
         
@@ -495,7 +495,7 @@ class CellGenerator:
             raise ValueError("Cytoplasm frame must be loaded before extraction")
         return self._extract_region(self.frame_cyto, pattern_idx, normalize)
 
-    def extract_pattern(self, pattern_idx: int, normalize: bool = True) -> np.ndarray:
+    def extract_pattern(self, pattern_idx: int, normalize: bool = False) -> np.ndarray:
         """
         Extract pattern region.
         
