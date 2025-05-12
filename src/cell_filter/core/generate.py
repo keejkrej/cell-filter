@@ -9,7 +9,6 @@ from typing import List, Tuple
 import logging
 from pathlib import Path
 from dataclasses import dataclass
-import matplotlib.pyplot as plt
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -170,7 +169,7 @@ class CellGenerator:
     # Private Methods
     # =====================================================================
 
-    def _normalize(self, image: np.ndarray, low: int, high: int) -> np.ndarray:
+    def _normalize(self, image: np.ndarray) -> np.ndarray:
         """
         Normalize an image to a range of 0-255.
         
@@ -186,8 +185,30 @@ class CellGenerator:
         if image is None or image.size == 0:
             raise ValueError("Image must not be None or empty")
         
-        percentile_high = np.percentile(image, high)
-        percentile_low = np.percentile(image, low)
+        image = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX)
+        image = image.astype(np.uint8)
+        return image
+
+    def _normalize_pct(self, image: np.ndarray, low: int, high: int) -> np.ndarray:
+        """
+        Normalize an image to a range of 0-255.
+        
+        Args:
+            image (np.ndarray): Input image to normalize
+            low (int): Lower percentile
+            high (int): Higher percentile
+            
+        Returns:
+            np.ndarray: Normalized image
+            
+        Raises:
+            ValueError: If image is None or empty
+        """
+        if image is None or image.size == 0:
+            raise ValueError("Image must not be None or empty")
+        
+        percentile_high = np.percentile(image[image>0], high)
+        percentile_low = np.percentile(image[image>0], low)
         image = np.clip(image, percentile_low, percentile_high)
         image = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX)
         image = image.astype(np.uint8)
@@ -333,8 +354,7 @@ class CellGenerator:
         try:
             x, y, w, h = self.bounding_boxes[pattern_idx]
             region = frame[y:y+h, x:x+w]
-            region = cv2.normalize(region, None, 0, 255, cv2.NORM_MINMAX)
-            region = region.astype(np.uint8)
+            region = self._normalize(region)
             return region
         except Exception as e:
             logger.error(f"Error extracting region: {e}")
@@ -395,8 +415,6 @@ class CellGenerator:
             raise ValueError(f"Frame index {frame_idx} out of range (0-{self.n_frames-1})")
         try:
             self.frame_nuclei = self.cells_reader.get_frame_2D(c=self.parameters.nuclei_channel, t=frame_idx, v=self.current_view)
-            plt.imshow(self.frame_nuclei)
-            plt.show()
             logger.debug(f"Loaded nuclei frame {frame_idx} for view {self.current_view} from channel {self.parameters.nuclei_channel}")
         except Exception as e:
             logger.error(f"Error loading nuclei: {e}")
@@ -431,7 +449,7 @@ class CellGenerator:
         if self.patterns is None:
             raise ValueError("Patterns must be loaded before processing")
         
-        self.patterns_norm = self._normalize(self.patterns, 10, 90)
+        self.patterns_norm = self._normalize_pct(self.patterns, 10, 90)
         contours, self.thresh = self._find_contours(self.patterns_norm)
         contour_data = self._refine_contours(contours, self.patterns_norm.shape)
         self.contours = [x[2] for x in contour_data]
