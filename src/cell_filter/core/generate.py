@@ -126,7 +126,9 @@ class CellGenerator:
             self.cells_channels = self.cells_reader.sizes.get('c', 0)
             self.cells_frames = self.cells_reader.sizes.get('t', 0)
             self.cells_views = self.cells_reader.sizes.get('v', 0)
+            self.dtype = self.cells_reader.get_frame_2D(c=0, t=0, v=0).dtype
             logger.debug(f"Channels: {self.cells_channels}, Frames: {self.cells_frames}, Views: {self.cells_views}")
+            logger.info(f"Data type: {self.dtype}")
         except Exception as e:
             logger.error(f"Error initializing cells reader: {e}")
             raise
@@ -330,7 +332,7 @@ class CellGenerator:
         logger.debug(f"Filtered {len(contours)} contours to {len(contour_data)} using iterative area analysis")
         return contour_data
     
-    def _extract_region(self, frame: np.ndarray, pattern_idx: int) -> np.ndarray:
+    def _extract_region(self, frame: np.ndarray, pattern_idx: int, normalize: bool) -> np.ndarray:
         """
         Extract a region from a frame based on pattern index.
         
@@ -354,7 +356,8 @@ class CellGenerator:
         try:
             x, y, w, h = self.bounding_boxes[pattern_idx]
             region = frame[y:y+h, x:x+w]
-            region = self._normalize(region)
+            if normalize:
+                region = self._normalize(region)
             return region
         except Exception as e:
             logger.error(f"Error extracting region: {e}")
@@ -458,7 +461,7 @@ class CellGenerator:
         self.n_patterns = len(self.contours)
         logger.debug(f"Processed {self.n_patterns} patterns")
 
-    def extract_nuclei(self, pattern_idx: int) -> np.ndarray:
+    def extract_nuclei(self, pattern_idx: int, normalize: bool = True) -> np.ndarray:
         """
         Extract nuclei region for a specific pattern.
         
@@ -473,9 +476,9 @@ class CellGenerator:
         """
         if self.frame_nuclei is None:
             raise ValueError("Nuclei frame must be loaded before extraction")
-        return self._extract_region(self.frame_nuclei, pattern_idx)
+        return self._extract_region(self.frame_nuclei, pattern_idx, normalize)
     
-    def extract_cyto(self, pattern_idx: int) -> np.ndarray:
+    def extract_cyto(self, pattern_idx: int, normalize: bool = True) -> np.ndarray:
         """
         Extract cytoplasm region for a specific pattern.
         
@@ -490,9 +493,9 @@ class CellGenerator:
         """
         if self.frame_cyto is None:
             raise ValueError("Cytoplasm frame must be loaded before extraction")
-        return self._extract_region(self.frame_cyto, pattern_idx)
+        return self._extract_region(self.frame_cyto, pattern_idx, normalize)
 
-    def extract_pattern(self, pattern_idx: int) -> np.ndarray:
+    def extract_pattern(self, pattern_idx: int, normalize: bool = True) -> np.ndarray:
         """
         Extract pattern region.
         
@@ -507,4 +510,4 @@ class CellGenerator:
         """
         if self.patterns is None:
             raise ValueError("Patterns must be loaded before extraction")
-        return self._extract_region(self.patterns, pattern_idx)
+        return self._extract_region(self.patterns, pattern_idx, normalize)

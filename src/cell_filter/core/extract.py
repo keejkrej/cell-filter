@@ -177,8 +177,8 @@ class Extractor:
             self.generator.load_nuclei(frame_idx)
             self.generator.load_cyto(frame_idx)
             
-            nuclei = self.generator.extract_nuclei(pattern_idx)
-            cyto = self.generator.extract_cyto(pattern_idx)
+            nuclei = self.generator.extract_nuclei(pattern_idx, normalize=False)
+            cyto = self.generator.extract_cyto(pattern_idx, normalize=False)
             
             nuclei_stack.append(nuclei)
             cyto_stack.append(cyto)
@@ -187,14 +187,14 @@ class Extractor:
             return
             
         # Convert stacks to numpy arrays
-        nuclei_stack = np.array(nuclei_stack, dtype=np.uint8)
-        cyto_stack = np.array(cyto_stack, dtype=np.uint8)
+        nuclei_stack = np.array(nuclei_stack, dtype=self.generator.dtype)
+        cyto_stack = np.array(cyto_stack, dtype=self.generator.dtype)
         
         # Calculate number of frames in this sequence
         n_frames = end_frame - start_frame + 1
 
         # Create RGB stack (nuclei in red, cytoplasm in green)
-        rgb_stack = np.zeros((n_frames, nuclei_stack.shape[1], nuclei_stack.shape[2], 3), dtype=np.uint8)
+        rgb_stack = np.zeros((n_frames, nuclei_stack.shape[1], nuclei_stack.shape[2], 3), dtype=self.generator.dtype)
         rgb_stack[..., 0] = nuclei_stack  # Red channel for nuclei
         rgb_stack[..., 1] = cyto_stack   # Green channel for cytoplasm
         
