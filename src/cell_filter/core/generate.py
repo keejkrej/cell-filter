@@ -36,8 +36,8 @@ class CellGeneratorParameters:
     gaussian_blur_size: Tuple[int, int] = (11, 11)
     bimodal_threshold: float = 0.1
     min_area_ratio: float = 0.5
+    max_area_ratio: float = 1.5
     max_iterations: int = 10
-    std_deviations_for_outliers: int = 5
     edge_tolerance: int = 5
     morph_dilate_size: Tuple[int, int] = (5, 5)
     nuclei_channel: int = 1
@@ -270,7 +270,7 @@ class CellGenerator:
         # Calculate areas
         areas = np.array([cv2.contourArea(contour) for contour in contours])
         
-        # Iteratively remove small areas until CV falls below threshold
+        # Iteratively remove small and large areas until CV falls below threshold
         current_contours = list(contours)
         current_areas = areas.copy()
         
@@ -282,12 +282,13 @@ class CellGenerator:
             # Remove areas smaller than min_area_ratio of mean
             mean_area = np.mean(current_areas)
             min_area = self.parameters.min_area_ratio * mean_area
+            max_area = self.parameters.max_area_ratio * mean_area
             
             # Create new lists of contours and areas
             new_contours = []
             new_areas = []
             for i, (contour, area) in enumerate(zip(current_contours, current_areas)):
-                if area >= min_area:
+                if area >= min_area and area <= max_area:
                     new_contours.append(contour)
                     new_areas.append(area)
             
@@ -301,18 +302,8 @@ class CellGenerator:
                 
         logger.debug(f"After {iteration + 1} iterations, CV reduced to {cv:.3f}")
         
-        # Now filter outliers using standard deviations
-        mean_area = np.mean(current_areas)
-        std_area = np.std(current_areas)
-        lower_bound = mean_area - self.parameters.std_deviations_for_outliers * std_area
-        upper_bound = mean_area + self.parameters.std_deviations_for_outliers * std_area
-        
         contour_data = []
-        for i, contour in enumerate(current_contours):
-            area = current_areas[i]
-            if area < lower_bound or area > upper_bound:
-                continue
-                
+        for contour in current_contours:
             x, y, w, h = cv2.boundingRect(contour)
             
             # Skip if too close to edges
