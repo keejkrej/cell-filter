@@ -187,14 +187,14 @@ class Extractor:
             return
             
         # Convert stacks to numpy arrays
-        nuclei_stack = np.array(nuclei_stack)
-        cyto_stack = np.array(cyto_stack)
+        nuclei_stack = np.array(nuclei_stack, dtype=np.uint8)
+        cyto_stack = np.array(cyto_stack, dtype=np.uint8)
         
         # Calculate number of frames in this sequence
         n_frames = end_frame - start_frame + 1
 
         # Create RGB stack (nuclei in red, cytoplasm in green)
-        rgb_stack = np.zeros((n_frames, nuclei_stack.shape[1], nuclei_stack.shape[2], 3))
+        rgb_stack = np.zeros((n_frames, nuclei_stack.shape[1], nuclei_stack.shape[2], 3), dtype=np.uint8)
         rgb_stack[..., 0] = nuclei_stack  # Red channel for nuclei
         rgb_stack[..., 1] = cyto_stack   # Green channel for cytoplasm
         
