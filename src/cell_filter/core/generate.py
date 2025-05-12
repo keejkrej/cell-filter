@@ -24,11 +24,10 @@ class CellGeneratorParameters:
         gaussian_blur_size (Tuple[int, int]): Size of Gaussian blur kernel
         bimodal_threshold (float): Threshold for coefficient of variation to determine if areas are bimodal
         min_area_ratio (float): Minimum area ratio to mean for filtering small areas
+        max_area_ratio (float): Maximum area ratio to mean for filtering large areas
         max_iterations (int): Maximum number of iterations for iterative area filtering
-        std_deviations_for_outliers (int): Number of standard deviations for outlier filtering
         edge_tolerance (int): Number of pixels to exclude from image edges
-        morph_open_size (Tuple[int, int]): Size of kernel for morphological opening
-        morph_close_size (Tuple[int, int]): Size of kernel for morphological closing
+        morph_dilate_size (Tuple[int, int]): Size of kernel for morphological dilation
         nuclei_channel (int): Channel index for nuclei
         cyto_channel (int): Channel index for cytoplasm
     """
