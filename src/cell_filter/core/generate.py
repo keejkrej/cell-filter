@@ -333,6 +333,8 @@ class CellGenerator:
         try:
             x, y, w, h = self.bounding_boxes[pattern_idx]
             region = frame[y:y+h, x:x+w]
+            region = cv2.normalize(region, None, 0, 255, cv2.NORM_MINMAX)
+            region = region.astype(np.uint8)
             return region
         except Exception as e:
             logger.error(f"Error extracting region: {e}")

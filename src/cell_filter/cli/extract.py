@@ -57,14 +57,14 @@ def parse_args():
     parser.add_argument(
         "--nuclei-channel",
         type=int,
-        default=1,
-        help="Channel index for nuclei (default: 1)",
+        required=True,
+        help="Channel index for nuclei",
     )
     parser.add_argument(
         "--cyto-channel",
         type=int,
-        default=0,
-        help="Channel index for cytoplasm (default: 0)",
+        required=True,
+        help="Channel index for cytoplasm",
     )
     parser.add_argument(
         "--time-series",
