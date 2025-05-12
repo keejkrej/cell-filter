@@ -324,7 +324,7 @@ class Analyzer:
         Process a range of views sequentially.
         
         Args:
-            start_view (int): Starting view index (inclusive)
+            view_range (List[int]): List of view indices to process
             end_view (int): Ending view index (exclusive)
             
         Raises:
@@ -350,7 +350,7 @@ class Analyzer:
             except Exception as e:
                 logger.warning(f"Error reading tracking file: {e}")
         
-        logger.debug(f"Starting sequential processing for views {start_view} to {end_view-1}")
+        logger.debug(f"Starting sequential processing for views {start_view} to {end_view}")
         
         for view_idx in range(start_view, end_view):
             # Skip if already processed
@@ -381,6 +381,6 @@ class Analyzer:
                 # Continue with next view even if this one fails
                 continue
                 
-        logger.debug(f"Sequential processing complete for views {start_view} to {end_view-1}")
+        logger.debug(f"Sequential processing complete for views {start_view} to {end_view}")
         self.generator.close_files()
         

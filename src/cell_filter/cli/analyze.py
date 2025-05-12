@@ -8,10 +8,10 @@ Usage:
     After installing the package with `pip install -e .`, run:
     
     # Basic usage
-    python -m cell_filter.cli.analyze --patterns <patterns_path> --cells <cells_path> --output <output_path>
+    python -m cell_filter.cli.analyze --patterns <patterns_path> --cells <cells_path> --output <output_path> --all
     
     # With custom parameters
-    python -m cell_filter.cli.analyze --patterns <patterns_path> --cells <cells_path> --output <output_path> --wanted 3 --no-gpu --diameter 20
+    python -m cell_filter.cli.analyze --patterns <patterns_path> --cells <cells_path> --output <output_path> --wanted 3 --no-gpu --diameter 20 --range 0:10
 
 Arguments:
     Required:
@@ -25,8 +25,7 @@ Arguments:
         --diameter: Expected diameter of cells in pixels (default: 15)
         --channels: Channel indices for Cellpose (default: "0,0")
         --model: Type of Cellpose model to use (default: "cyto3")
-        --start-view: Starting view index (inclusive)
-        --end-view: Ending view index (exclusive)
+        --range: View range in format 'start:end' (e.g., '0:10')
         --all: Process all views
         --debug: Enable debug logging
 """
@@ -61,14 +60,14 @@ def parse_args():
     parser.add_argument(
         "--nuclei-channel",
         type=int,
-        default=1,
-        help="Channel index for nuclei (default: 1)",
+        required=True,
+        help="Channel index for nuclei",
     )
     parser.add_argument(
         "--cyto-channel",
         type=int,
-        default=0,
-        help="Channel index for cytoplasm (default: 0)",
+        required=True,
+        help="Channel index for cytoplasm",
     )
     parser.add_argument(
         "--output",
@@ -93,20 +92,16 @@ def parse_args():
         action="store_true",
         help="Don't use GPU for Cellpose",
     )
-    parser.add_argument(
-        "--start-view",
-        type=int,
-        help="Starting view index (inclusive)"
-    )
-    parser.add_argument(
-        "--end-view",
-        type=int,
-        help="Ending view index (exclusive). Required if --start-view is specified."
-    )
-    parser.add_argument(
+    view_group = parser.add_mutually_exclusive_group(required=True)
+    view_group.add_argument(
         "--all",
         action="store_true",
         help="Process all views"
+    )
+    view_group.add_argument(
+        "--range",
+        type=str,
+        help="View range in format 'start:end' (e.g., '0:10')"
     )
     parser.add_argument(
         "--debug",
@@ -146,11 +141,6 @@ def main():
         logger.error(f"Error: Cells file not found: {args.cells}")
         sys.exit(1)
 
-    # Validate arguments
-    if args.start_view is not None and args.end_view is None:
-        logger.error("--end-view is required when --start-view is specified")
-        sys.exit(1)
-
     try:
         # Initialize analyzer
         analyzer = Analyzer(
@@ -169,8 +159,9 @@ def main():
             logger.info("Processing all views")
             analyzer.process_views(0, analyzer.generator.n_views)
         else:
-            logger.info(f"Processing views {args.start_view} to {args.end_view}")
-            analyzer.process_views(args.start_view, args.end_view)
+            logger.info(f"Processing views {args.range}")
+            view_range = list(map(int, args.range.split(":")))
+            analyzer.process_views(view_range[0], view_range[1])
 
     except Exception as e:
         logger.error(f"Error during analysis: {e}")

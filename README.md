@@ -28,12 +28,11 @@ python -m cell_filter.cli.info \
 python -m cell_filter.cli.analyze \
 --patterns /path/to/20220525_patterns_end.nd2 \
 --cells /path/to/20220525_MBAMB231.nd2 \
---output /path/to/output/analysis \
---start-view 0 \
---end-view 10 \
---wanted 3 \
 --nuclei-channel 1 \
---cyto-channel 0
+--cyto-channel 0 \
+--output /path/to/output/analysis \
+--range 0:10 \
+--wanted 3 \
 ```
 
 ## Extract
