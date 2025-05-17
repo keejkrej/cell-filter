@@ -79,6 +79,7 @@ class Patterns:
     def get_tracked_indices(self) -> List[int]:
         """
         Get list of indices being tracked.
+        Should return immutable
         
         Returns:
             List[int]: Copy of the list of tracked indices
@@ -88,11 +89,12 @@ class Patterns:
     def get_valid_patterns(self) -> Dict[int, List[int]]:
         """
         Get dictionary of patterns with valid frames.
+        Should return immutable
         
         Returns:
-            Dict[int, List[int]]: Dictionary mapping pattern indices to their valid frame indices
+            Dict[int, List[int]]: Dictionary mapping pattern indices to a copy of their valid frame indices
         """
-        return {idx: frames for idx, frames in self.saved.items() if frames}
+        return {idx: list(frames) for idx, frames in self.saved.items() if frames}
 
 class Analyzer:
     """
