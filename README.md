@@ -12,39 +12,39 @@ pip install -e .
 
 First analyze, then extract
 
-## Info
+## Pattern (test if patterns are properly recognized)
 
 ```bash
-python -m cell_filter.cli.info \
---patterns /path/to/20220525_patterns_end.nd2 \
---cells /path/to/20220525_MBAMB231.nd2 \
---view 0 \
---output /path/to/output/analysis \
+python -m cell_filter.cli.pattern
+--patterns ./20220525_patterns_end.nd2
+--cells ./20220525_MBAMB231.nd2
+--view 0
+--output ./pattern.png
 ```
 
 ## Analyze
 
 ```bash
-python -m cell_filter.cli.analyze \
---patterns /path/to/20220525_patterns_end.nd2 \
---cells /path/to/20220525_MBAMB231.nd2 \
---nuclei-channel 1 \
---cyto-channel 0 \
---output /path/to/output/analysis \
---range 0:10 \
---wanted 3 \
+python -m cell_filter.cli.analyze
+--patterns ./20220525_patterns_end.nd2
+--cells ./20220525_MBAMB231.nd2
+--nuclei-channel 1
+--cyto-channel 0
+--output ./output/analysis
+--range 0:10
+--wanted 3
 ```
 
 ## Extract
 
 ```bash
-python -m cell_filter.cli.extract \
---patterns /path/to/20220525_patterns_end.nd2 \
---cells /path/to/20220525_MBAMB231.nd2 \
---time-series /path/to/output/analysis \
---output /path/to/output \
---min-frames 20 \
---nuclei-channel 1 \
+python -m cell_filter.cli.extract
+--patterns ./20220525_patterns_end.nd2
+--cells ./20220525_MBAMB231.nd2
+--time-series ./output/analysis
+--output ./output
+--min-frames 20
+--nuclei-channel 1
 --cyto-channel 0
 ```
 
@@ -54,12 +54,12 @@ python -m cell_filter.cli.extract \
 
 - [`analyze.py`](src/cell_filter/cli/analyze.py)
 - [`extract.py`](src/cell_filter/cli/extract.py)
-- [`info.py`](src/cell_filter/cli/info.py)
+- [`pattern.py`](src/cell_filter/cli/pattern.py)
 
 ## Core
 
-- [`Analyzer.py`](src/cell_filter/core/Analyzer.py)
-- [`CellGenerator.py`](src/cell_filter/core/CellGenerator.py)
-- [`CellposeCounter.py`](src/cell_filter/core/CellposeCounter.py)
-- [`Extractor.py`](src/cell_filter/core/Extractor.py)
-- [`InfoDisplayer.py`](src/cell_filter/core/InfoDisplayer.py)
+- [`analyze.py`](src/cell_filter/core/analyze.py)
+- [`generate.py`](src/cell_filter/core/generate.py)
+- [`count.py`](src/cell_filter/core/count.py)
+- [`extract.py`](src/cell_filter/core/extract.py)
+- [`pattern.py`](src/cell_filter/core/pattern.py)
