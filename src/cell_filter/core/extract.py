@@ -168,6 +168,9 @@ class Extractor:
         """
         Extract and save frame stack for a given pattern.
         """
+
+        pattern = self.generator.extract_pattern(pattern_idx) # (h, w)
+
         # Initialize stacks for nuclei and cytoplasm
         nuclei_stack = []
         cyto_stack = []
@@ -182,26 +185,25 @@ class Extractor:
             
             nuclei_stack.append(nuclei)
             cyto_stack.append(cyto)
-        
-        if not nuclei_stack or not cyto_stack:
-            return
             
         # Convert stacks to numpy arrays
-        nuclei_stack = np.array(nuclei_stack, dtype=self.generator.dtype)
-        cyto_stack = np.array(cyto_stack, dtype=self.generator.dtype)
+        nuclei_stack = np.array(nuclei_stack) # (n_frames, h, w)
+        cyto_stack = np.array(cyto_stack) # (n_frames, h, w)
         
         # Calculate number of frames in this sequence
         n_frames = end_frame - start_frame + 1
 
-        # Create RGB stack (nuclei in red, cytoplasm in green)
-        rgb_stack = np.zeros((n_frames, nuclei_stack.shape[1], nuclei_stack.shape[2], 3), dtype=self.generator.dtype)
-        rgb_stack[..., 0] = nuclei_stack  # Red channel for nuclei
-        rgb_stack[..., 1] = cyto_stack   # Green channel for cytoplasm
+        # Expand pattern to match frame dimensions
+        pattern_expanded = np.broadcast_to(
+            pattern[np.newaxis, :, :], 
+            (n_frames, pattern.shape[0], pattern.shape[1])
+        )  # (n_frames, h, w)
+        
+        # Stack all three channels: [pattern, nuclei, cyto]
+        final_stack = np.stack([pattern_expanded, nuclei_stack, cyto_stack], axis=1)  # (n_frames, 3, h, w)
         
         # Save frame stack
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', message='.*is a low contrast image.*')
-            imwrite(frame_output_path, rgb_stack)
+        np.save(frame_output_path, final_stack)
 
         # Save frame indices
         with open(json_output_path, 'w') as f:
@@ -212,22 +214,6 @@ class Extractor:
             }, f, indent=2)
 
         logger.info(f"Saved pattern {pattern_idx} frames from {start_frame} to {end_frame} to {frame_output_path}")
-
-    def _save_pattern(self,
-                      pattern_idx: int,
-                      pattern_output_path: Path,
-                      ) -> None:
-        """
-        Extract and save pattern
-        """
-        # Extract pattern
-        pattern = self.generator.extract_pattern(pattern_idx)
-        
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', message='.*is a low contrast image.*')
-            imwrite(pattern_output_path, pattern)
-        
-        logger.info(f"Saved pattern {pattern_idx} image to {pattern_output_path}")
 
     def _process_time_series(self, time_series: Dict, view_idx: int, output_dir: Path, min_frames: int) -> None:
         """
@@ -261,15 +247,10 @@ class Extractor:
 
             # Filenames and directories
             filename_prefix = f"view_{view_idx:03d}_pattern_{pattern_idx:03d}_{sequence_idx:03d}"
-            frames_dir = output_dir / 'frames'
-            pattern_dir = output_dir / 'pattern'
-            json_dir = output_dir / 'json'
-            frames_dir.mkdir(parents=True, exist_ok=True)
-            pattern_dir.mkdir(parents=True, exist_ok=True)
-            json_dir.mkdir(parents=True, exist_ok=True)
-            frame_output_path = frames_dir / f"{filename_prefix}_frames.tif"
-            pattern_output_path = pattern_dir / f"{filename_prefix}_pattern.tif"
-            json_output_path = json_dir / f"{filename_prefix}_frames.json"
+            extraction_dir = output_dir / 'extraction'
+            extraction_dir.mkdir(parents=True, exist_ok=True)
+            frame_output_path = extraction_dir / f"{filename_prefix}.npy"
+            json_output_path = extraction_dir / f"{filename_prefix}.json"
             
             try:
                 self._extract_frame_stack(
@@ -278,11 +259,6 @@ class Extractor:
                     end_frame=end_frame,
                     frame_output_path=frame_output_path,
                     json_output_path=json_output_path,
-                )
-
-                self._save_pattern(
-                    pattern_idx=pattern_idx,
-                    pattern_output_path=pattern_output_path,
                 )
             except Exception as e:
                 logger.warning(f"Error processing pattern {pattern_idx}: {e}")
