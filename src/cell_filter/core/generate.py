@@ -186,7 +186,7 @@ class CellGenerator:
         if image is None or image.size == 0:
             raise ValueError("Image must not be None or empty")
         
-        image = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX)
+        image = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX) # type: ignore
         image = image.astype(np.uint8)
         return image
 
@@ -211,12 +211,12 @@ class CellGenerator:
         percentile_high = np.percentile(image[image>0], high)
         percentile_low = np.percentile(image[image>0], low)
         image = np.clip(image, percentile_low, percentile_high)
-        image = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX)
+        image = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX) # type: ignore
         image = image.astype(np.uint8)
 
         return image
 
-    def _find_contours(self, image: np.ndarray) -> List[np.ndarray]:
+    def _find_contours(self, image: np.ndarray) -> Tuple[List[np.ndarray], np.ndarray]:
         """
         Find contours in an image using thresholding and contour detection.
         
@@ -247,7 +247,7 @@ class CellGenerator:
 
         logger.debug(f"Found {len(contours)} contours in image")
         
-        return contours, thresh
+        return list(contours), thresh
 
     def _refine_contours(self, contours: List[np.ndarray], image_shape: Tuple[int, int]) -> List[Tuple[int, int, np.ndarray, Tuple[int, int, int, int]]]:
         """
@@ -272,6 +272,8 @@ class CellGenerator:
         # Iteratively remove small and large areas until CV falls below threshold
         current_contours = list(contours)
         current_areas = areas.copy()
+        iteration = 0
+        cv = float('inf')
         
         for iteration in range(self.parameters.max_iterations):
             cv = np.std(current_areas) / np.mean(current_areas)

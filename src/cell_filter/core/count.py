@@ -21,7 +21,7 @@ class CellposeCounter():
         Args:
             use_gpu: Whether to use GPU for Cellpose
         """
-        self.model = models.Cellpose(
+        self.model = models.CellposeModel(
             gpu=use_gpu,
             model_type="cyto3"
         )

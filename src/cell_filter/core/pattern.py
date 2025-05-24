@@ -80,6 +80,9 @@ class PatternDisplayer:
         if len(image.shape) == 2:
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
         
+        if self.generator.bounding_boxes is None:
+            return image
+            
         for pattern_idx in range(self.generator.n_patterns):
             # Get bounding box coordinates
             bbox = self.generator.bounding_boxes[pattern_idx]
@@ -130,6 +133,8 @@ class PatternDisplayer:
             ax = plt.gca()
             
             # Get patterns image and draw boxes
+            if self.generator.thresh is None:
+                raise ValueError("Threshold image not available")
             patterns_image = np.copy(self.generator.thresh)
             annotated_image = self._draw_boxes(patterns_image)
             
