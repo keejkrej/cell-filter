@@ -4,18 +4,18 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cell-filter"
-version = "1.2.0"
+version = "2.0.0"
 description = "Filtering micropatterned timelapse microscopy images based on number of cells"
 authors = [
     {name = "Tianyi Cao", email = "ctyjackcao@outlook.com"},
 ]
 dependencies = [
-    "numpy==1.26.4",
-    "torch==2.7.0",
-    "imageio==2.37.0",
-    "matplotlib==3.10.1",
+    "numpy==2.3.0",
+    "torch==2.7.1",
+    "tifffile==2025.6.1",
+    "matplotlib==3.10.3",
     "opencv-python==4.11.0.86",
-    "cellpose==3.1.1.2",
+    "cellpose==4.0.4",
     "nd2reader==3.3.1",
 ]
 requires-python = ">=3.12,<3.13"

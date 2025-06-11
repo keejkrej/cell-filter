@@ -5,8 +5,7 @@ Core extractor functionality for cell-filter.
 import json
 from pathlib import Path
 import numpy as np
-from imageio.v3 import imwrite
-import warnings
+from tifffile import imwrite
 from .generate import CellGenerator, CellGeneratorParameters
 import logging
 from typing import Dict, List
@@ -200,10 +199,10 @@ class Extractor:
         )  # (n_frames, h, w)
         
         # Stack all three channels: [pattern, nuclei, cyto]
-        final_stack = np.stack([pattern_expanded, nuclei_stack, cyto_stack], axis=1)  # (n_frames, 3, h, w)
+        final_stack = np.stack([pattern_expanded, nuclei_stack, cyto_stack], axis=0)  # (3, n_frames, h, w)
         
-        # Save frame stack
-        np.save(frame_output_path, final_stack)
+        # Save frame stack as TIFF
+        imwrite(frame_output_path, final_stack)
 
         # Save frame indices
         with open(json_output_path, 'w') as f:
@@ -249,7 +248,7 @@ class Extractor:
             filename_prefix = f"view_{view_idx:03d}_pattern_{pattern_idx:03d}_{sequence_idx:03d}"
             extraction_dir = output_dir / 'extraction'
             extraction_dir.mkdir(parents=True, exist_ok=True)
-            frame_output_path = extraction_dir / f"{filename_prefix}.npy"
+            frame_output_path = extraction_dir / f"{filename_prefix}.tiff"
             json_output_path = extraction_dir / f"{filename_prefix}.json"
             
             try:
