@@ -2,11 +2,9 @@
 Core pattern displayer functionality for cell-filter.
 """
 
-from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
-from typing import Optional
 import logging
 from .generate import CellGenerator, CellGeneratorParameters
 
@@ -111,7 +109,7 @@ class PatternDisplayer:
     # Public Methods
     # =====================================================================
 
-    def plot_view(self, view_idx: int, output_path: Optional[str] = None) -> None:
+    def plot_view(self, view_idx: int, output_path: str | None = None) -> None:
         """
         Plot the patterns image for a specific view with bounding boxes and indices.
         

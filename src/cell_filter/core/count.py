@@ -2,7 +2,6 @@
 Cellpose-based counter for cell-filter.
 """
 
-from typing import List, Union
 import numpy as np
 from cellpose import models
 
@@ -25,7 +24,7 @@ class CellposeCounter():
             gpu=use_gpu,
         )
     
-    def count_nuclei(self, images: Union[np.ndarray, List[np.ndarray]]) -> List[int]:
+    def count_nuclei(self, images: np.ndarray | list[np.ndarray]) -> list[int]:
         """
         Count nuclei in one or more images using Cellpose.
         
@@ -34,7 +33,7 @@ class CellposeCounter():
             wanted: Expected number of nuclei
             
         Returns:
-            List of nuclei counts for each image
+            list of nuclei counts for each image
         """
         # Convert single image to list
         if isinstance(images, np.ndarray):

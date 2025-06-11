@@ -4,8 +4,6 @@ Core analyzer functionality for cell-filter.
 
 import json
 import time
-from typing import Dict, List
-
 from .generate import CellGenerator, CellGeneratorParameters
 from .count import CellposeCounter
 import logging
@@ -23,10 +21,10 @@ class Patterns:
     and which frames have been saved for each pattern.
     
     Attributes:
-        tracked (List[int]): List of pattern indices currently being tracked
-        dropped_zero (List[int]): List of pattern indices dropped due to zero nuclei
-        dropped_many (List[int]): List of pattern indices dropped due to too many nuclei
-        saved (Dict[int, List[int]]): Dictionary mapping pattern indices to saved frame indices
+        tracked (list[int]): list of pattern indices currently being tracked
+        dropped_zero (list[int]): list of pattern indices dropped due to zero nuclei
+        dropped_many (list[int]): list of pattern indices dropped due to too many nuclei
+        saved (dict[int, list[int]]): dictionary mapping pattern indices to saved frame indices
     """
     
     def __init__(self, n_patterns: int) -> None:
@@ -36,10 +34,10 @@ class Patterns:
         Args:
             n_patterns (int): Total number of patterns to track
         """
-        self.tracked: List[int] = list(range(n_patterns))
-        self.dropped_zero: List[int] = []
-        self.dropped_many: List[int] = []
-        self.saved: Dict[int, List[int]] = {i: [] for i in range(n_patterns)}
+        self.tracked: list[int] = list(range(n_patterns))
+        self.dropped_zero: list[int] = []
+        self.dropped_many: list[int] = []
+        self.saved: dict[int, list[int]] = {i: [] for i in range(n_patterns)}
     
     def drop_zero(self, idx: int) -> None:
         """
@@ -76,23 +74,23 @@ class Patterns:
         self.saved[idx].append(frame_idx)
         logger.debug(f"Saved frame {frame_idx} for pattern {idx}")
     
-    def get_tracked_indices(self) -> List[int]:
+    def get_tracked_indices(self) -> list[int]:
         """
         Get list of indices being tracked.
         Should return immutable
         
         Returns:
-            List[int]: Copy of the list of tracked indices
+            list[int]: Copy of the list of tracked indices
         """
         return list(self.tracked)
     
-    def get_valid_patterns(self) -> Dict[int, List[int]]:
+    def get_valid_patterns(self) -> dict[int, list[int]]:
         """
         Get dictionary of patterns with valid frames.
         Should return immutable
         
         Returns:
-            Dict[int, List[int]]: Dictionary mapping pattern indices to a copy of their valid frame indices
+            dict[int, list[int]]: dictionary mapping pattern indices to a copy of their valid frame indices
         """
         return {idx: list(frames) for idx, frames in self.saved.items() if frames}
 
@@ -269,7 +267,7 @@ class Analyzer:
     # Public Methods
     # =====================================================================
 
-    def analyze_time_series(self, view_idx: int) -> Dict:
+    def analyze_time_series(self, view_idx: int) -> dict:
         """
         Analyze time series data and track nuclei counts for a single view.
         
@@ -277,7 +275,7 @@ class Analyzer:
             view_idx (int): Index of the view to analyze
             
         Returns:
-            Dict: Dictionary containing analysis results
+            dict: dictionary containing analysis results
             
         Raises:
             ValueError: If analysis fails
@@ -323,7 +321,7 @@ class Analyzer:
         Process a range of views sequentially.
         
         Args:
-            view_range (List[int]): List of view indices to process
+            view_range (list[int]): list of view indices to process
             end_view (int): Ending view index (exclusive)
             
         Raises:

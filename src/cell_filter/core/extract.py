@@ -8,7 +8,6 @@ import numpy as np
 from tifffile import imwrite
 from .generate import CellGenerator, CellGeneratorParameters
 import logging
-from typing import Dict, List
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -72,7 +71,7 @@ class Extractor:
     # Private Methods
     # =====================================================================
 
-    def _refine_time_series(self, time_series: Dict[int, List[int]], min_frames:int ) -> Dict[int, List[int]]:
+    def _refine_time_series(self, time_series: dict[int, list[int]], min_frames:int ) -> dict[int, list[int]]:
         """
         Refine the time lapse dictionary by applying modifications to the frame indices.
         Splits time lapses when gaps between consecutive frames are larger than 6.
@@ -81,10 +80,10 @@ class Extractor:
         Pattern indices are formatted with leading zeros (e.g., 000, 001).
         
         Args:
-            time_series (Dict[int, List[int]]): Dictionary mapping pattern indices to frame indices
+            time_series (dict[int, list[int]]): dictionary mapping pattern indices to frame indices
             
         Returns:
-            Dict[int, List[int]]: Refined time lapse dictionary with split sequences,
+            dict[int, list[int]]: Refined time lapse dictionary with split sequences,
                                  each sequence represented by [start_frame, end_frame]
         """
         MAX_GAP = 6
@@ -129,16 +128,16 @@ class Extractor:
                 
         return refined_time_series
 
-    def _add_head_tail(self, time_series: Dict[int, List[int]], n_frames: int = 3) -> Dict[int, List[int]]:
+    def _add_head_tail(self, time_series: dict[int, list[int]], n_frames: int = 3) -> dict[int, list[int]]:
         """
         Add extra frames at the beginning and end of each sequence for better inspection.
         
         Args:
-            time_series (Dict[int, List[int]]): Dictionary mapping pattern indices to [start_frame, end_frame]
+            time_series (dict[int, list[int]]): dictionary mapping pattern indices to [start_frame, end_frame]
             n_frames (int): Number of extra frames to add at each end (default: 3)
             
         Returns:
-            Dict[int, List[int]]: Time lapse dictionary with added head and tail frames
+            dict[int, list[int]]: Time lapse dictionary with added head and tail frames
         """
         extended_time_series = {}
         
@@ -214,12 +213,12 @@ class Extractor:
 
         logger.info(f"Saved pattern {pattern_idx} frames from {start_frame} to {end_frame} to {frame_output_path}")
 
-    def _process_time_series(self, time_series: Dict, view_idx: int, output_dir: Path, min_frames: int) -> None:
+    def _process_time_series(self, time_series: dict, view_idx: int, output_dir: Path, min_frames: int) -> None:
         """
         Process a single time series JSON file.
         
         Args:
-            data (Dict): Time series data
+            data (dict): Time series data
             view_idx (int): View index
             output_dir (Path): Directory to save extracted frames
             min_frames (int): Minimum number of frames required for extraction

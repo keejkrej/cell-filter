@@ -5,7 +5,6 @@ Core cell generator functionality for cell-filter.
 import cv2
 import numpy as np
 from nd2reader import ND2Reader
-from typing import List, Tuple
 import logging
 from pathlib import Path
 from dataclasses import dataclass
@@ -21,24 +20,24 @@ class CellGeneratorParameters:
     in the CellGenerator class.
     
     Attributes:
-        gaussian_blur_size (Tuple[int, int]): Size of Gaussian blur kernel
+        gaussian_blur_size (tuple[int, int]): Size of Gaussian blur kernel
         bimodal_threshold (float): Threshold for coefficient of variation to determine if areas are bimodal
         min_area_ratio (float): Minimum area ratio to mean for filtering small areas
         max_area_ratio (float): Maximum area ratio to mean for filtering large areas
         max_iterations (int): Maximum number of iterations for iterative area filtering
         edge_tolerance (int): Number of pixels to exclude from image edges
-        morph_dilate_size (Tuple[int, int]): Size of kernel for morphological dilation
+        morph_dilate_size (tuple[int, int]): Size of kernel for morphological dilation
         nuclei_channel (int): Channel index for nuclei
         cyto_channel (int): Channel index for cytoplasm
     """
     
-    gaussian_blur_size: Tuple[int, int] = (11, 11)
+    gaussian_blur_size: tuple[int, int] = (11, 11)
     bimodal_threshold: float = 0.1
     min_area_ratio: float = 0.5
     max_area_ratio: float = 1.5
     max_iterations: int = 10
     edge_tolerance: int = 5
-    morph_dilate_size: Tuple[int, int] = (5, 5)
+    morph_dilate_size: tuple[int, int] = (5, 5)
     nuclei_channel: int = 1
     cyto_channel: int = 0
 
@@ -60,9 +59,9 @@ class CellGenerator:
         current_frame (int): Current frame index
         patterns (Optional[np.ndarray]): Current patterns image
         n_patterns (int): Number of detected patterns
-        contours (Optional[List[np.ndarray]]): Pattern contours
-        bounding_boxes (Optional[List[Tuple[int, int, int, int]]]): Pattern bounding boxes
-        centers (Optional[List[Tuple[int, int]]]): Pattern centers
+        contours (Optional[list[np.ndarray]]): Pattern contours
+        bounding_boxes (Optional[list[tuple[int, int, int, int]]]): Pattern bounding boxes
+        centers (Optional[list[tuple[int, int]]]): Pattern centers
         frame_nuclei (Optional[np.ndarray]): Current nuclei frame
         frame_cyto (Optional[np.ndarray]): Current cytoplasm frame
         parameters (CellGeneratorParameters): Parameters for image processing and cell detection
@@ -216,7 +215,7 @@ class CellGenerator:
 
         return image
 
-    def _find_contours(self, image: np.ndarray) -> Tuple[List[np.ndarray], np.ndarray]:
+    def _find_contours(self, image: np.ndarray) -> tuple[list[np.ndarray], np.ndarray]:
         """
         Find contours in an image using thresholding and contour detection.
         
@@ -224,7 +223,7 @@ class CellGenerator:
             image (np.ndarray): Input image to find contours in
             
         Returns:
-            List[np.ndarray]: List of detected contours
+            list[np.ndarray]: list of detected contours
             
         Raises:
             ValueError: If image is None or empty
@@ -249,16 +248,16 @@ class CellGenerator:
         
         return list(contours), thresh
 
-    def _refine_contours(self, contours: List[np.ndarray], image_shape: Tuple[int, int]) -> List[Tuple[int, int, np.ndarray, Tuple[int, int, int, int]]]:
+    def _refine_contours(self, contours: list[np.ndarray], image_shape: tuple[int, int]) -> list[tuple[int, int, np.ndarray, tuple[int, int, int, int]]]:
         """
         Refine contours by filtering based on area and calculating centers.
         
         Args:
-            contours (List[np.ndarray]): List of contours to refine
-            image_shape (Tuple[int, int]): Shape of the image (height, width)
+            contours (list[np.ndarray]): list of contours to refine
+            image_shape (tuple[int, int]): Shape of the image (height, width)
             
         Returns:
-            List[Tuple[int, int, np.ndarray, Tuple[int, int, int, int]]]: List of (center_y, center_x, contour, bounding_box)
+            list[tuple[int, int, np.ndarray, tuple[int, int, int, int]]]: list of (center_y, center_x, contour, bounding_box)
             
         Raises:
             ValueError: If contours list is empty
