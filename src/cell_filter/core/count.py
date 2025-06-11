@@ -23,10 +23,9 @@ class CellposeCounter():
         """
         self.model = models.CellposeModel(
             gpu=use_gpu,
-            model_type="cyto3"
         )
     
-    def count_nuclei(self, images: Union[np.ndarray, List[np.ndarray]], diameter: int) -> List[int]:
+    def count_nuclei(self, images: Union[np.ndarray, List[np.ndarray]]) -> List[int]:
         """
         Count nuclei in one or more images using Cellpose.
         
@@ -44,8 +43,6 @@ class CellposeCounter():
         # Run Cellpose on all images
         masks_list, _, _, _ = self.model.eval(
             images,
-            diameter=diameter,
-            channels=[0, 0]
         )
         
         # Count nuclei in each image

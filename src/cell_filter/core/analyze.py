@@ -121,7 +121,6 @@ class Analyzer:
         output_folder: str,
         wanted: int,
         use_gpu: bool,
-        diameter: int,
         nuclei_channel: int,
         cyto_channel: int
     ) -> None:
@@ -134,13 +133,11 @@ class Analyzer:
             output_folder (str): Path to save analysis results
             wanted (int): Desired number of nuclei per pattern
             use_gpu (bool): Whether to use GPU for cell counting
-            diameter (int): Expected diameter of nuclei
             
         Raises:
             ValueError: If initialization fails
         """
         self.output_folder = str(Path(output_folder).resolve())
-        self.diameter = diameter
 
         try:
             self._init_generator(patterns_path, cells_path, nuclei_channel, cyto_channel)
@@ -232,7 +229,7 @@ class Analyzer:
             
             # Count nuclei for all patterns in this frame
             try:
-                counts = self.counter.count_nuclei(nuclei_list, self.diameter)
+                counts = self.counter.count_nuclei(nuclei_list)
             except Exception as e:
                 logger.error(f"Error counting nuclei in frame {frame_idx}: {e}")
                 return
