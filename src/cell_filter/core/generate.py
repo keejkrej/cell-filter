@@ -13,23 +13,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class CellGeneratorParameters:
-    """
-    Parameters for the CellGenerator class.
-    
-    This dataclass contains all the parameters used for image processing and cell detection
-    in the CellGenerator class.
-    
-    Attributes:
-        gaussian_blur_size (tuple[int, int]): Size of Gaussian blur kernel
-        bimodal_threshold (float): Threshold for coefficient of variation to determine if areas are bimodal
-        min_area_ratio (float): Minimum area ratio to mean for filtering small areas
-        max_area_ratio (float): Maximum area ratio to mean for filtering large areas
-        max_iterations (int): Maximum number of iterations for iterative area filtering
-        edge_tolerance (int): Number of pixels to exclude from image edges
-        morph_dilate_size (tuple[int, int]): Size of kernel for morphological dilation
-        nuclei_channel (int): Channel index for nuclei
-        cyto_channel (int): Channel index for cytoplasm
-    """
+    """Parameters for the CellGenerator class."""
     
     gaussian_blur_size: tuple[int, int] = (11, 11)
     bimodal_threshold: float = 0.1
@@ -42,33 +26,10 @@ class CellGeneratorParameters:
     cyto_channel: int = 0
 
 class CellGenerator:
-    """
-    A class for generating and processing cell data from images.
-    
-    This class handles the loading and processing of pattern and cell images from ND2 files,
-    providing methods to extract and analyze cell regions.
-    
-    Attributes:
-        patterns_path (str): Path to the patterns ND2 file
-        cells_path (str): Path to the cell ND2 file
-        patterns_reader (ND2Reader): Reader for patterns ND2 file
-        cells_reader (ND2Reader): Reader for cells ND2 file
-        n_views (int): Number of views in the files
-        n_frames (int): Number of frames in the cells file
-        current_view (int): Current view index
-        current_frame (int): Current frame index
-        patterns (Optional[np.ndarray]): Current patterns image
-        n_patterns (int): Number of detected patterns
-        contours (Optional[list[np.ndarray]]): Pattern contours
-        bounding_boxes (Optional[list[tuple[int, int, int, int]]]): Pattern bounding boxes
-        centers (Optional[list[tuple[int, int]]]): Pattern centers
-        frame_nuclei (Optional[np.ndarray]): Current nuclei frame
-        frame_cyto (Optional[np.ndarray]): Current cytoplasm frame
-        parameters (CellGeneratorParameters): Parameters for image processing and cell detection
-    """
+    """Generate and process cell data from images."""
 
     # =====================================================================
-    # Constructor and Initialization
+    # Constructor
     # =====================================================================
 
     def __init__(
@@ -77,18 +38,7 @@ class CellGenerator:
         cells_path: str,
         parameters: CellGeneratorParameters
     ) -> None:
-        """
-        Initialize the CellGenerator with paths to pattern and cell images.
-        
-        Args:
-            patterns_path (str): Path to the patterns ND2 file
-            cells_path (str): Path to the cell ND2 file containing nuclei and cytoplasm channels
-            parameters (CellGeneratorParameters, optional): Parameters for image processing and cell detection.
-                If None, default parameters will be used.
-            
-        Raises:
-            ValueError: If initialization fails or files are invalid
-        """
+        """Initialize CellGenerator and set paths."""
         self.patterns_path = Path(patterns_path).resolve()
         self.cells_path = Path(cells_path).resolve()
         self.parameters = parameters
@@ -132,12 +82,7 @@ class CellGenerator:
             raise
 
     def _validate_files(self) -> None:
-        """
-        Validate the ND2 files meet the required specifications.
-        
-        Raises:
-            ValueError: If files don't meet the required specifications
-        """
+        """Validate the ND2 files meet the required specifications."""
         if self.pattern_channels != 0:
             raise ValueError("Patterns ND2 file shouldn't have any channels")
         if self.pattern_frames != 1:
@@ -170,18 +115,7 @@ class CellGenerator:
     # =====================================================================
 
     def _normalize(self, image: np.ndarray) -> np.ndarray:
-        """
-        Normalize an image to a range of 0-255.
-        
-        Args:
-            image (np.ndarray): Input image to normalize
-            
-        Returns:
-            np.ndarray: Normalized image
-            
-        Raises:
-            ValueError: If image is None or empty
-        """
+        """Normalize an image to a range of 0-255."""
         if image is None or image.size == 0:
             raise ValueError("Image must not be None or empty")
         
@@ -216,18 +150,7 @@ class CellGenerator:
         return image
 
     def _find_contours(self, image: np.ndarray) -> tuple[list[np.ndarray], np.ndarray]:
-        """
-        Find contours in an image using thresholding and contour detection.
-        
-        Args:
-            image (np.ndarray): Input image to find contours in
-            
-        Returns:
-            list[np.ndarray]: list of detected contours
-            
-        Raises:
-            ValueError: If image is None or empty
-        """
+        """Find contours in an image using thresholding and contour detection."""
         if image is None or image.size == 0:
             raise ValueError("Image must not be None or empty")
             
@@ -324,19 +247,7 @@ class CellGenerator:
         return contour_data
     
     def _extract_region(self, frame: np.ndarray, pattern_idx: int, normalize: bool) -> np.ndarray:
-        """
-        Extract a region from a frame based on pattern index.
-        
-        Args:
-            frame (np.ndarray): Frame to extract region from
-            pattern_idx (int): Index of the pattern to extract
-            
-        Returns:
-            np.ndarray: Extracted region
-            
-        Raises:
-            ValueError: If frame is None, pattern index is invalid, or extraction fails
-        """
+        """Extract a region from a frame based on pattern index."""
         if frame is None:
             raise ValueError("Frame not provided")
         if pattern_idx >= self.n_patterns or pattern_idx < 0:
@@ -367,27 +278,14 @@ class CellGenerator:
         logger.debug("Closed all ND2 readers")
 
     def load_view(self, view_idx: int) -> None:
-        """
-        Load a specific view from the ND2 files.
-        
-        Args:
-            view_idx (int): Index of the view to load
-            
-        Raises:
-            ValueError: If view index is invalid
-        """
+        """Load a specific view from the ND2 files."""
         if view_idx >= self.n_views or view_idx < 0:
             raise ValueError(f"View index {view_idx} out of range (0-{self.n_views-1})")
         self.current_view = view_idx
         logger.debug(f"Loaded view {view_idx}")
 
     def load_patterns(self) -> None:
-        """
-        Load the patterns from ND2 file.
-        
-        Raises:
-            ValueError: If loading fails
-        """
+        """Load the patterns from ND2 file."""
         try:
             self.patterns = self.patterns_reader.get_frame_2D(c=0, t=0, v=self.current_view)
             logger.debug(f"Loaded patterns for view {self.current_view}")
@@ -396,15 +294,7 @@ class CellGenerator:
             raise ValueError(f"Error loading patterns: {e}")
     
     def load_nuclei(self, frame_idx: int) -> None:
-        """
-        Load nuclei frame from ND2 file.
-        
-        Args:
-            frame_idx (int): Index of the frame to load
-            
-        Raises:
-            ValueError: If frame index is invalid or loading fails
-        """
+        """Load nuclei frame from ND2 file."""
         if frame_idx >= self.n_frames:
             raise ValueError(f"Frame index {frame_idx} out of range (0-{self.n_frames-1})")
         try:
@@ -415,15 +305,7 @@ class CellGenerator:
             raise ValueError(f"Error loading nuclei: {e}")
     
     def load_cyto(self, frame_idx: int) -> None:
-        """
-        Load cytoplasm frame from ND2 file.
-        
-        Args:
-            frame_idx (int): Index of the frame to load
-            
-        Raises:
-            ValueError: If frame index is invalid or loading fails
-        """
+        """Load cytoplasm frame from ND2 file."""
         if frame_idx >= self.n_frames:
             raise ValueError(f"Frame index {frame_idx} out of range (0-{self.n_frames-1})")
         try:
@@ -434,12 +316,7 @@ class CellGenerator:
             raise ValueError(f"Error loading cyto: {e}")
         
     def process_patterns(self) -> None:
-        """
-        Process pattern image to extract contours and their bounding boxes.
-        
-        Raises:
-            ValueError: If patterns haven't been loaded
-        """
+        """Process pattern image to extract contours and their bounding boxes."""
         if self.patterns is None:
             raise ValueError("Patterns must be loaded before processing")
         
@@ -453,52 +330,19 @@ class CellGenerator:
         logger.debug(f"Processed {self.n_patterns} patterns")
 
     def extract_nuclei(self, pattern_idx: int, normalize: bool = False) -> np.ndarray:
-        """
-        Extract nuclei region for a specific pattern.
-        
-        Args:
-            pattern_idx (int): Index of the pattern to extract
-            
-        Returns:
-            np.ndarray: Extracted nuclei region
-            
-        Raises:
-            ValueError: If nuclei frame hasn't been loaded
-        """
+        """Extract nuclei region for a specific pattern."""
         if self.frame_nuclei is None:
             raise ValueError("Nuclei frame must be loaded before extraction")
         return self._extract_region(self.frame_nuclei, pattern_idx, normalize)
     
     def extract_cyto(self, pattern_idx: int, normalize: bool = False) -> np.ndarray:
-        """
-        Extract cytoplasm region for a specific pattern.
-        
-        Args:
-            pattern_idx (int): Index of the pattern to extract
-            
-        Returns:
-            np.ndarray: Extracted cytoplasm region
-            
-        Raises:
-            ValueError: If cytoplasm frame hasn't been loaded
-        """
+        """Extract cytoplasm region for a specific pattern."""
         if self.frame_cyto is None:
             raise ValueError("Cytoplasm frame must be loaded before extraction")
         return self._extract_region(self.frame_cyto, pattern_idx, normalize)
 
     def extract_pattern(self, pattern_idx: int, normalize: bool = False) -> np.ndarray:
-        """
-        Extract pattern region.
-        
-        Args:
-            pattern_idx (int): Index of the pattern to extract
-            
-        Returns:
-            np.ndarray: Extracted pattern region
-            
-        Raises:
-            ValueError: If patterns haven't been loaded
-        """
+        """Extract pattern region."""
         if self.patterns is None:
             raise ValueError("Patterns must be loaded before extraction")
         return self._extract_region(self.patterns, pattern_idx, normalize)

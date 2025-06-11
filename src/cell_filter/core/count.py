@@ -6,35 +6,27 @@ import numpy as np
 from cellpose import models
 
 class CellposeCounter():
-    """
-    Counter that uses Cellpose to detect and count nuclei.
-    """
+    """Counter that uses Cellpose to detect and count nuclei."""
+
+    # =====================================================================
+    # Constructor
+    # =====================================================================
     
     def __init__(
         self,
         use_gpu: bool
     ):
-        """
-        Initialize the Cellpose counter.
-        
-        Args:
-            use_gpu: Whether to use GPU for Cellpose
-        """
+        """Initialize the Cellpose counter."""
         self.model = models.CellposeModel(
             gpu=use_gpu,
         )
     
+    # =====================================================================
+    # Public Methods
+    # =====================================================================
+    
     def count_nuclei(self, images: np.ndarray | list[np.ndarray]) -> list[int]:
-        """
-        Count nuclei in one or more images using Cellpose.
-        
-        Args:
-            images: Single image or list of images to count nuclei in
-            wanted: Expected number of nuclei
-            
-        Returns:
-            list of nuclei counts for each image
-        """
+        """Count nuclei in one or more images using Cellpose."""
         # Convert single image to list
         if isinstance(images, np.ndarray):
             images = [images]

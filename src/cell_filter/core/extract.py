@@ -14,21 +14,11 @@ logger = logging.getLogger(__name__)
 
 class Extractor:
     """
-    A class for extracting valid frames and patterns from time series analysis results.
-    
-    This class handles the extraction of time lapse sequences from analysis results,
-    including refining time lapses, adding head/tail frames, and saving the results
-    in a structured directory format.
-    
-    Attributes:
-        generator (CellGenerator): Cell generator instance
-        patterns_path (str): Path to the patterns ND2 file
-        cells_path (str): Path to the cells ND2 file
-        output_folder (str): Path to save extracted frames
+    Perform extraction of frames and patterns from time series analysis results.
     """
 
     # =====================================================================
-    # Constructor and Initialization
+    # Constructor
     # =====================================================================
 
     def __init__(
@@ -40,15 +30,7 @@ class Extractor:
         cyto_channel: int
     ) -> None:
         """
-        Initialize the Extractor with paths to pattern and cell images.
-        
-        Args:
-            patterns_path (str): Path to the patterns ND2 file
-            cells_path (str): Path to the cells ND2 file containing nuclei and cytoplasm channels
-            output_folder (str): Path to save extracted frames
-            
-        Raises:
-            ValueError: If initialization fails
+        Initialize CellGenerator and set paths.
         """
         self.patterns_path = str(Path(patterns_path).resolve())
         self.cells_path = str(Path(cells_path).resolve())
@@ -73,18 +55,7 @@ class Extractor:
 
     def _refine_time_series(self, time_series: dict[int, list[int]], min_frames:int ) -> dict[int, list[int]]:
         """
-        Refine the time lapse dictionary by applying modifications to the frame indices.
-        Splits time lapses when gaps between consecutive frames are larger than 6.
-        Fills in missing frames when gaps are small (≤6) to create continuous sequences.
-        Only stores the start and end frames of each sequence.
-        Pattern indices are formatted with leading zeros (e.g., 000, 001).
-        
-        Args:
-            time_series (dict[int, list[int]]): dictionary mapping pattern indices to frame indices
-            
-        Returns:
-            dict[int, list[int]]: Refined time lapse dictionary with split sequences,
-                                 each sequence represented by [start_frame, end_frame]
+        Refine the time lapse dictionary by filling gaps and splitting time lapses.
         """
         MAX_GAP = 6
         refined_time_series = {}
@@ -130,14 +101,7 @@ class Extractor:
 
     def _add_head_tail(self, time_series: dict[int, list[int]], n_frames: int = 3) -> dict[int, list[int]]:
         """
-        Add extra frames at the beginning and end of each sequence for better inspection.
-        
-        Args:
-            time_series (dict[int, list[int]]): dictionary mapping pattern indices to [start_frame, end_frame]
-            n_frames (int): Number of extra frames to add at each end (default: 3)
-            
-        Returns:
-            dict[int, list[int]]: Time lapse dictionary with added head and tail frames
+        Add head and tail frames to the time series to show the whole process.
         """
         extended_time_series = {}
         
@@ -216,15 +180,6 @@ class Extractor:
     def _process_time_series(self, time_series: dict, view_idx: int, output_dir: Path, min_frames: int) -> None:
         """
         Process a single time series JSON file.
-        
-        Args:
-            data (dict): Time series data
-            view_idx (int): View index
-            output_dir (Path): Directory to save extracted frames
-            min_frames (int): Minimum number of frames required for extraction
-            
-        Raises:
-            ValueError: If processing fails
         """     
         # Refine time lapse
         time_series = self._refine_time_series(time_series, min_frames)
@@ -272,16 +227,7 @@ class Extractor:
         min_frames: int = 20
     ) -> None:
         """
-        Extract valid frames and patterns for each pattern based on time series analysis results.
-        Creates dual-channel outputs with nuclei in red and cytoplasm in green.
-        Each time lapse gets its own directory named with view and pattern index.
-        
-        Args:
-            time_series_dir (str): Directory containing time series JSON files
-            min_frames (int): Minimum number of valid frames required for extraction (default: 20)
-            
-        Raises:
-            ValueError: If extraction fails
+        Pipeline for Extractor.
         """
         try:
             # Create base output directory

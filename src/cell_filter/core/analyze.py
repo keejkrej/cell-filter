@@ -13,103 +13,55 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 class Patterns:
-    """
-    Class to manage the state of all patterns.
+    """Track pattern state during analysis."""
     
-    This class tracks the state of patterns throughout the analysis process,
-    including which patterns are being tracked, which have been dropped,
-    and which frames have been saved for each pattern.
-    
-    Attributes:
-        tracked (list[int]): list of pattern indices currently being tracked
-        dropped_zero (list[int]): list of pattern indices dropped due to zero nuclei
-        dropped_many (list[int]): list of pattern indices dropped due to too many nuclei
-        saved (dict[int, list[int]]): dictionary mapping pattern indices to saved frame indices
-    """
+    # =====================================================================
+    # Constructor
+    # =====================================================================
     
     def __init__(self, n_patterns: int) -> None:
-        """
-        Initialize the Patterns class.
-        
-        Args:
-            n_patterns (int): Total number of patterns to track
-        """
+        """Initialize pattern tracking state."""
         self.tracked: list[int] = list(range(n_patterns))
         self.dropped_zero: list[int] = []
         self.dropped_many: list[int] = []
         self.saved: dict[int, list[int]] = {i: [] for i in range(n_patterns)}
     
+    # =====================================================================
+    # Public Methods
+    # =====================================================================
+    
     def drop_zero(self, idx: int) -> None:
-        """
-        Mark pattern as dropped due to zero nuclei.
-        
-        Args:
-            idx (int): Index of the pattern to drop
-        """
+        """Mark pattern as dropped due to no nuclei found."""
         if idx in self.tracked:
             self.tracked.remove(idx)
             self.dropped_zero.append(idx)
             logger.debug(f"Dropped pattern {idx} due to zero nuclei")
     
     def drop_many(self, idx: int) -> None:
-        """
-        Mark pattern as dropped due to too many nuclei.
-        
-        Args:
-            idx (int): Index of the pattern to drop
-        """
+        """Mark pattern as dropped due to too many nuclei."""
         if idx in self.tracked:
             self.tracked.remove(idx)
             self.dropped_many.append(idx)
             logger.debug(f"Dropped pattern {idx} due to too many nuclei")
     
     def save_frame(self, idx: int, frame_idx: int) -> None:
-        """
-        Save a valid frame index for a pattern.
-        
-        Args:
-            idx (int): Index of the pattern
-            frame_idx (int): Index of the frame to save
-        """
+        """Save a valid frame index for a pattern."""
         self.saved[idx].append(frame_idx)
         logger.debug(f"Saved frame {frame_idx} for pattern {idx}")
     
     def get_tracked_indices(self) -> list[int]:
-        """
-        Get list of indices being tracked.
-        Should return immutable
-        
-        Returns:
-            list[int]: Copy of the list of tracked indices
-        """
+        """Get list of indices being tracked."""
         return list(self.tracked)
     
     def get_valid_patterns(self) -> dict[int, list[int]]:
-        """
-        Get dictionary of patterns with valid frames.
-        Should return immutable
-        
-        Returns:
-            dict[int, list[int]]: dictionary mapping pattern indices to a copy of their valid frame indices
-        """
+        """Get dictionary of patterns with valid frames."""
         return {idx: list(frames) for idx, frames in self.saved.items() if frames}
 
 class Analyzer:
-    """
-    A class for analyzing time series data and tracking nuclei counts.
-    
-    This class coordinates the analysis of cell patterns over time, tracking
-    nuclei counts and maintaining state of valid patterns.
-    
-    Attributes:
-        generator (CellGenerator): Cell generator instance
-        counter (CellposeCounter): Cell counter instance
-        wanted (int): Desired number of nuclei per pattern
-        patterns (Patterns): Pattern tracking state
-    """
+    """Analyze time series data and track nuclei counts."""
 
     # =====================================================================
-    # Constructor and Initialization
+    # Constructor
     # =====================================================================
 
     def __init__(
@@ -122,19 +74,7 @@ class Analyzer:
         nuclei_channel: int,
         cyto_channel: int
     ) -> None:
-        """
-        Initialize the Analyzer with configuration parameters.
-        
-        Args:
-            patterns_path (str): Path to the patterns ND2 file
-            cells_path (str): Path to the cell ND2 file
-            output_folder (str): Path to save analysis results
-            wanted (int): Desired number of nuclei per pattern
-            use_gpu (bool): Whether to use GPU for cell counting
-            
-        Raises:
-            ValueError: If initialization fails
-        """
+        """Initialize the Analyzer with configuration parameters."""
         self.output_folder = str(Path(output_folder).resolve())
 
         try:
@@ -146,16 +86,7 @@ class Analyzer:
             raise ValueError(f"Error initializing Analyzer: {e}")
 
     def _init_generator(self, patterns_path: str, cells_path: str, nuclei_channel: int, cyto_channel: int) -> None:
-        """
-        Initialize the cell generator.
-        
-        Args:
-            patterns_path (str): Path to the patterns ND2 file
-            cells_path (str): Path to the cell ND2 file
-            
-        Raises:
-            ValueError: If initialization fails
-        """
+        """Initialize the cell generator."""
         try:
             self.generator = CellGenerator(
                 patterns_path=patterns_path,
@@ -171,16 +102,7 @@ class Analyzer:
             raise
     
     def _init_counter(self, wanted: int, use_gpu: bool) -> None:
-        """
-        Initialize the cell counter.
-        
-        Args:
-            wanted (int): Desired number of nuclei per pattern
-            use_gpu (bool): Whether to use GPU for cell counting
-            
-        Raises:
-            ValueError: If initialization fails
-        """
+        """Initialize the cell counter."""
         try:
             self.counter = CellposeCounter(
                 use_gpu=use_gpu
@@ -196,15 +118,7 @@ class Analyzer:
     # =====================================================================
 
     def _process_frame(self, frame_idx: int) -> None:
-        """
-        Process a single frame and update pattern tracking.
-        
-        Args:
-            frame_idx (int): Index of the frame to process
-            
-        Raises:
-            ValueError: If processing fails
-        """
+        """Process a single frame and update pattern tracking."""
         try:
             # Load current frame
             self.generator.load_nuclei(frame_idx)
@@ -268,18 +182,7 @@ class Analyzer:
     # =====================================================================
 
     def analyze_time_series(self, view_idx: int) -> dict:
-        """
-        Analyze time series data and track nuclei counts for a single view.
-        
-        Args:
-            view_idx (int): Index of the view to analyze
-            
-        Returns:
-            dict: dictionary containing analysis results
-            
-        Raises:
-            ValueError: If analysis fails
-        """
+        """Analyze time series data and track nuclei counts for a single view."""
         logger.info(f"Starting time series analysis for view {view_idx}")
         
         try:

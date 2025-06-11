@@ -1,33 +1,5 @@
 """
 Analyze command for cell-filter.
-
-This script processes time series data to track and analyze nuclei counts in microscopy images.
-It uses Cellpose for cell detection and segmentation.
-
-Usage:
-    After installing the package with `pip install -e .`, run:
-    
-    # Basic usage
-    python -m cell_filter.cli.analyze --patterns <patterns_path> --cells <cells_path> --output <output_path> --all
-    
-    # With custom parameters
-    python -m cell_filter.cli.analyze --patterns <patterns_path> --cells <cells_path> --output <output_path> --wanted 3 --no-gpu --diameter 20 --range 0:10
-
-Arguments:
-    Required:
-        --patterns: Path to the patterns image file
-        --cells: Path to the cells image file containing nuclei and cytoplasm channels
-        --output: Path to save the output JSON file
-    
-    Optional:
-        --wanted: Number of nuclei to look for (default: 3)
-        --no-gpu: Disable GPU acceleration for Cellpose
-        --diameter: Expected diameter of cells in pixels (default: 15)
-        --channels: Channel indices for Cellpose (default: "0,0")
-        --model: Type of Cellpose model to use (default: "cyto3")
-        --range: View range in format 'start:end' (e.g., '0:10')
-        --all: Process all views
-        --debug: Enable debug logging
 """
 
 import argparse
@@ -37,11 +9,7 @@ from ..core.analyze import Analyzer
 import logging
 
 def parse_args():
-    """Parse command line arguments.
-    
-    Returns:
-        argparse.Namespace: Parsed command line arguments
-    """
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser(
         description="Analyze time series data and track nuclei counts."
     )
@@ -111,15 +79,7 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    """Main function to run the analysis pipeline.
-    
-    This function:
-    1. Parses command line arguments
-    2. Configures logging
-    3. Validates input files
-    4. Initializes the analyzer
-    5. Processes the specified views
-    """
+    """Main function to run the analysis pipeline."""
     args = parse_args()
 
     # Configure logging
@@ -149,7 +109,6 @@ def main():
             output_folder=args.output,
             wanted=args.wanted,
             use_gpu=not args.no_gpu,
-            diameter=args.diameter,
             nuclei_channel=args.nuclei_channel,
             cyto_channel=args.cyto_channel,
         )

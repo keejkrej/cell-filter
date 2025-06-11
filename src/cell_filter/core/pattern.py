@@ -12,20 +12,10 @@ from .generate import CellGenerator, CellGeneratorParameters
 logger = logging.getLogger(__name__)
 
 class PatternDisplayer:
-    """
-    A class for displaying patterns.
-    
-    This class provides functionality to visualize the patterns image for a specific view,
-    with bounding boxes and pattern indices overlaid on top.
-    
-    Attributes:
-        generator (CellGenerator): Cell generator instance
-        patterns_path (str): Path to the patterns ND2 file
-        cells_path (str): Path to the cells ND2 file
-    """
+    """Display patterns with bounding boxes and indices."""
 
     # =====================================================================
-    # Constructor and Initialization
+    # Constructor
     # =====================================================================
 
     def __init__(
@@ -35,16 +25,7 @@ class PatternDisplayer:
         nuclei_channel: int,
         cyto_channel: int
     ) -> None:
-        """
-        Initialize the InfoDisplayer with paths to pattern and cell images.
-        
-        Args:
-            patterns_path (str): Path to the patterns ND2 file
-            cells_path (str): Path to the cells ND2 file containing nuclei and cytoplasm channels
-            
-        Raises:
-            ValueError: If initialization fails
-        """
+        """Initialize PatternDisplayer and set paths."""
         try:
             self.generator = CellGenerator(
                 patterns_path,
@@ -65,15 +46,7 @@ class PatternDisplayer:
     # =====================================================================
 
     def _draw_boxes(self, image: np.ndarray) -> np.ndarray:
-        """
-        Draw bounding boxes and indices for all patterns.
-        
-        Args:
-            image (np.ndarray): Original patterns image
-            
-        Returns:
-            np.ndarray: Image with bounding boxes and indices drawn
-        """
+        """Draw bounding boxes and indices for all patterns."""
         # Convert to RGB for colored annotations
         if len(image.shape) == 2:
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
@@ -110,16 +83,7 @@ class PatternDisplayer:
     # =====================================================================
 
     def plot_view(self, view_idx: int, output_path: str | None = None) -> None:
-        """
-        Plot the patterns image for a specific view with bounding boxes and indices.
-        
-        Args:
-            view_idx (int): Index of the view to plot
-            output_path (Optional[str]): Path to save the plot (if None, display plot)
-            
-        Raises:
-            ValueError: If view index is invalid or plotting fails
-        """
+        """Plot patterns image for a specific view with bounding boxes and indices."""
         try:
             # Load view and patterns
             self.generator.load_view(view_idx)

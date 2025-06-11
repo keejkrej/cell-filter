@@ -1,29 +1,5 @@
 """
 Extract command for cell-filter.
-
-This script extracts valid frames and patterns from time series analysis results.
-It processes the output from the analyze command to identify and save frames that meet
-the specified criteria for further analysis.
-
-Usage:
-    After installing the package with `pip install -e .`, run:
-    
-    # Basic usage
-    python -m cell_filter.cli.extract --patterns <patterns_path> --cells <cells_path> --time-series <time_series_dir> --output <output_dir>
-    
-    # With custom parameters
-    python -m cell_filter.cli.extract --patterns <patterns_path> --cells <cells_path> --time-series <time_series_dir> --output <output_dir> --min-frames 20
-
-Arguments:
-    Required:
-        --patterns: Path to the patterns ND2 file
-        --cells: Path to the cells ND2 file containing nuclei and cytoplasm channels
-        --time-series: Directory containing time series JSON files
-        --output: Directory to save extracted frames
-    
-    Optional:
-        --min-frames: Minimum number of valid frames required for extraction (default: 20)
-        --debug: Enable debug logging
 """
 
 import argparse
@@ -34,11 +10,7 @@ import logging
 from pathlib import Path
 
 def parse_args():
-    """Parse command line arguments.
-    
-    Returns:
-        argparse.Namespace: Parsed command line arguments
-    """
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser(
         description="Extract valid frames and patterns from time series analysis results."
     )
