@@ -13,9 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Extractor:
-    """
-    Perform extraction of frames and patterns from time series analysis results.
-    """
+    """Extract frames and patterns from time series analysis results."""
 
     # =====================================================================
     # Constructor
@@ -29,9 +27,7 @@ class Extractor:
         nuclei_channel: int,
         cyto_channel: int
     ) -> None:
-        """
-        Initialize CellGenerator and set paths.
-        """
+        """Initialize Extractor with paths and configuration."""
         self.patterns_path = str(Path(patterns_path).resolve())
         self.cells_path = str(Path(cells_path).resolve())
         self.output_folder = str(Path(output_folder).resolve())
@@ -54,9 +50,7 @@ class Extractor:
     # =====================================================================
 
     def _refine_time_series(self, time_series: dict[int, list[int]], min_frames:int ) -> dict[int, list[int]]:
-        """
-        Refine the time lapse dictionary by filling gaps and splitting time lapses.
-        """
+        """Refine time series by splitting gaps and filtering by minimum frames."""
         MAX_GAP = 6
         refined_time_series = {}
         
@@ -100,9 +94,7 @@ class Extractor:
         return refined_time_series
 
     def _add_head_tail(self, time_series: dict[int, list[int]], n_frames: int = 3) -> dict[int, list[int]]:
-        """
-        Add head and tail frames to the time series to show the whole process.
-        """
+        """Add head and tail frames to time series sequences."""
         extended_time_series = {}
         
         # Get total number of frames from the generator
@@ -127,9 +119,7 @@ class Extractor:
                              end_frame: int,
                              frame_output_path: Path,
                              json_output_path: Path) -> None:
-        """
-        Extract and save frame stack for a given pattern.
-        """
+        """Extract and save frame stack for a pattern sequence."""
 
         pattern = self.generator.extract_pattern(pattern_idx) # (h, w)
 
@@ -178,9 +168,7 @@ class Extractor:
         logger.info(f"Saved pattern {pattern_idx} frames from {start_frame} to {end_frame} to {frame_output_path}")
 
     def _process_time_series(self, time_series: dict, view_idx: int, output_dir: Path, min_frames: int) -> None:
-        """
-        Process a single time series JSON file.
-        """     
+        """Process time series data for a single view."""
         # Refine time lapse
         time_series = self._refine_time_series(time_series, min_frames)
         
@@ -226,9 +214,7 @@ class Extractor:
         time_series_dir: str,
         min_frames: int = 20
     ) -> None:
-        """
-        Pipeline for Extractor.
-        """
+        """Extract valid frames and patterns from time series analysis results."""
         try:
             # Create base output directory
             output_dir = Path(self.output_folder)
