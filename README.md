@@ -10,56 +10,12 @@ pip install -e .
 
 # Usage
 
-First analyze, then extract
-
-## Pattern (test if patterns are properly recognized)
-
-```bash
-python -m cell_filter.cli.pattern
---patterns ./20220525_patterns_end.nd2
---cells ./20220525_MBAMB231.nd2
---view 0
---output ./pattern.png
-```
-
-## Analyze
+- copy [scripts/pattern.py](scripts/pattern.py), [scripts/analyze.py](scripts/analyze.py), and [scripts/extract.py](scripts/extract.py) to your working directory,
+- edit the parameters in the scripts,
+- run the scripts in the following order:
 
 ```bash
-python -m cell_filter.cli.analyze
---patterns ./20220525_patterns_end.nd2
---cells ./20220525_MBAMB231.nd2
---nuclei-channel 1
---cyto-channel 0
---output ./output/analysis
---range 0:10
---wanted 3
+python pattern.py
+python analyze.py
+python extract.py
 ```
-
-## Extract
-
-```bash
-python -m cell_filter.cli.extract
---patterns ./20220525_patterns_end.nd2
---cells ./20220525_MBAMB231.nd2
---time-series ./output/analysis
---output ./output
---min-frames 20
---nuclei-channel 1
---cyto-channel 0
-```
-
-# Code Structure
-
-## CLI
-
-- [`analyze.py`](src/cell_filter/cli/analyze.py)
-- [`extract.py`](src/cell_filter/cli/extract.py)
-- [`pattern.py`](src/cell_filter/cli/pattern.py)
-
-## Core
-
-- [`analyze.py`](src/cell_filter/core/analyze.py)
-- [`generate.py`](src/cell_filter/core/generate.py)
-- [`count.py`](src/cell_filter/core/count.py)
-- [`extract.py`](src/cell_filter/core/extract.py)
-- [`pattern.py`](src/cell_filter/core/pattern.py)
