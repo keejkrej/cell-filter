@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "cell-filter"
+name = "cell_filter"
 version = "1.1.0"
 description = "A tool for counting cells in microscopy images"
 authors = [
@@ -27,4 +27,4 @@ readme = "README.md"
 license = {text = "MIT"}
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/cell-filter"]
+packages = ["src/cell_filter"]
