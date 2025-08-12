@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "cell_filter"
+name = "cell-filter"
 version = "1.1.0"
 description = "A tool for counting cells in microscopy images"
 authors = [
