@@ -3,21 +3,20 @@ Concise pattern display script for cell-filter.
 """
 
 import os
-from cell_filter.core.pattern import PatternDisplayer
+from cell_filter.core.pattern import Patterner
 import logging
 
 # Define parameters here
 PATTERNS = "path/to/patterns.nd2"
 CELLS = "path/to/cells.nd2"
 NUCLEI_CHANNEL = 1  # default in CLI
-CYTO_CHANNEL = 0    # default in CLI
-VIEW = 0            # Only used if VIEW_ALL is False
-VIEW_ALL = True     # Set to False to use VIEW
-OUTPUT = None       # Only used if VIEW_ALL is False
+VIEW = 0  # Only used if VIEW_ALL is False
+VIEW_ALL = True  # Set to False to use VIEW
+OUTPUT = None  # Only used if VIEW_ALL is False
 DEBUG = False
 
 # Configure logging
-logging.basicConfig(level=logging.WARNING, format='%(message)s')
+logging.basicConfig(level=logging.WARNING, format="%(message)s")
 logging.getLogger("cell_filter").setLevel(logging.DEBUG if DEBUG else logging.INFO)
 logger = logging.getLogger("cell_filter.cli.info")
 
@@ -32,11 +31,10 @@ if not os.path.exists(CELLS):
     exit(1)
 
 # Initialize info displayer
-displayer = PatternDisplayer(
+displayer = Patterner(
     patterns_path=PATTERNS,
     cells_path=CELLS,
     nuclei_channel=NUCLEI_CHANNEL,
-    cyto_channel=CYTO_CHANNEL
 )
 
 if VIEW_ALL:
@@ -48,4 +46,4 @@ else:
     logger.info(f"Plotting view {VIEW}")
     displayer.plot_view(VIEW, OUTPUT)
     logger.info("Plotting completed successfully")
-displayer.close() 
+displayer.close()

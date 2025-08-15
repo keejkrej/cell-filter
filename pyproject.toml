@@ -10,15 +10,14 @@ authors = [
     {name = "Tianyi Cao", email = "ctyjackcao@outlook.com"},
 ]
 dependencies = [
-    "numpy==2.3.0",
-    "torch==2.7.1",
-    "tifffile==2025.6.1",
-    "matplotlib==3.10.3",
-    "opencv-python==4.11.0.86",
-    "cellpose==4.0.4",
-    "nd2reader==3.3.1",
+    "numpy",
+    "torch",
+    "matplotlib",
+    "opencv-python",
+    "cellpose>4",
+    "nd2",
 ]
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.11"
 readme = "README.md"
 license = {text = "MIT"}
 

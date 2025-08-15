@@ -10,17 +10,16 @@ import logging
 PATTERNS = "path/to/patterns.tif"
 CELLS = "path/to/cells.tif"
 NUCLEI_CHANNEL = 0
-CYTO_CHANNEL = 1
 OUTPUT = "path/to/output.json"
-WANTED = 3
+N_CELLS = 3
 DIAMETER = 15
 NO_GPU = False  # Set to True to disable GPU
-ALL = True      # Set to False to use RANGE
+ALL = True  # Set to False to use RANGE
 RANGE = "0:10"  # Only used if ALL is False
 DEBUG = False
 
 # Configure logging
-logging.basicConfig(level=logging.WARNING, format='%(message)s')
+logging.basicConfig(level=logging.WARNING, format="%(message)s")
 logging.getLogger("cell_filter").setLevel(logging.DEBUG if DEBUG else logging.INFO)
 logger = logging.getLogger("cell_filter.cli.analyze")
 
@@ -39,10 +38,9 @@ analyzer = Analyzer(
     patterns_path=PATTERNS,
     cells_path=CELLS,
     output_folder=OUTPUT,
-    wanted=WANTED,
+    n_cells=N_CELLS,
     use_gpu=not NO_GPU,
     nuclei_channel=NUCLEI_CHANNEL,
-    cyto_channel=CYTO_CHANNEL,
 )
 
 # Process views
@@ -52,4 +50,4 @@ if ALL:
 else:
     logger.info(f"Processing views {RANGE}")
     view_range = list(map(int, RANGE.split(":")))
-    analyzer.process_views(view_range[0], view_range[1]) 
+    analyzer.process_views(view_range[0], view_range[1])

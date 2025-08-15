@@ -11,14 +11,13 @@ from pathlib import Path
 PATTERNS = "path/to/patterns.nd2"
 CELLS = "path/to/cells.nd2"
 NUCLEI_CHANNEL = 0
-CYTO_CHANNEL = 1
 TIME_SERIES = "path/to/time_series_json_dir"
 OUTPUT = "path/to/output_dir"
 MIN_FRAMES = 20
 DEBUG = False
 
 # Configure logging
-logging.basicConfig(level=logging.WARNING, format='%(message)s')
+logging.basicConfig(level=logging.WARNING, format="%(message)s")
 logging.getLogger("cell_filter").setLevel(logging.DEBUG if DEBUG else logging.INFO)
 logger = logging.getLogger("cell_filter.cli.extract")
 
@@ -47,13 +46,9 @@ extractor = Extractor(
     cells_path=CELLS,
     output_folder=OUTPUT,
     nuclei_channel=NUCLEI_CHANNEL,
-    cyto_channel=CYTO_CHANNEL
 )
 
 # Extract frames
 logger.info("Starting extraction process")
-extractor.extract(
-    time_series_dir=TIME_SERIES,
-    min_frames=MIN_FRAMES
-)
-logger.info("Extraction completed successfully") 
+extractor.extract(time_series_dir=TIME_SERIES, min_frames=MIN_FRAMES)
+logger.info("Extraction completed successfully")

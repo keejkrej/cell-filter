@@ -8,6 +8,8 @@ cd cell-filter
 pip install -e .
 ```
 
+See [PROJECT.md](PROJECT.md) for a high-level project summary.
+
 # Usage
 
 - copy [scripts/pattern.py](scripts/pattern.py), [scripts/analyze.py](scripts/analyze.py), and [scripts/extract.py](scripts/extract.py) to your working directory,
