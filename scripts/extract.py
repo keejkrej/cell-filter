@@ -19,7 +19,7 @@ DEBUG = False
 # Configure logging
 logging.basicConfig(level=logging.WARNING, format="%(message)s")
 logging.getLogger("cell_filter").setLevel(logging.DEBUG if DEBUG else logging.INFO)
-logger = logging.getLogger("cell_filter.cli.extract")
+logger = logging.getLogger("cell_filter.scripts.extract")
 
 # Check if patterns file exists
 if not os.path.exists(PATTERNS):
