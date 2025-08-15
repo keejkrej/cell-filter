@@ -8,12 +8,12 @@ import logging
 from pathlib import Path
 
 # Define parameters here
-PATTERNS = "path/to/patterns.nd2"
-CELLS = "path/to/cells.nd2"
+PATTERNS = "data/20250806_patterns_after.nd2"
+CELLS = "data/20250806_MDCK_timelapse_crop_fov0004.nd2"
 NUCLEI_CHANNEL = 1
-TIME_SERIES = "path/to/time_series_json_dir"
-OUTPUT = "path/to/output_dir"
-MIN_FRAMES = 20
+TIME_SERIES = "data/analysis/"
+OUTPUT = "data/analysis/"
+MIN_FRAMES = 10
 DEBUG = False
 
 # Configure logging

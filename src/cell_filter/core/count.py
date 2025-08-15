@@ -26,9 +26,9 @@ class CellposeCounter:
             images = [images]
 
         # Run Cellpose on all images
-        masks_list, _, _, _ = self.model.eval(
+        masks_list = self.model.eval(
             images,
-        )
+        )[0]
 
         # Count nuclei in each image
         counts = []

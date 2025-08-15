@@ -237,10 +237,13 @@ class Analyzer:
         Raises:
             ValueError: If view range is invalid
         """
+        print("start_view", start_view)
+        print("end_view", end_view)
+        print("n_views", self.generator.n_views)
         if (
             start_view < 0
             or end_view > self.generator.n_views
-            or start_view >= end_view
+            or start_view > end_view
         ):
             raise ValueError(
                 f"Invalid view range: {start_view} to {end_view} (total views: {self.generator.n_views})"

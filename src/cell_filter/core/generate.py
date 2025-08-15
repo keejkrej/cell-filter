@@ -94,8 +94,8 @@ class Generator:
 
     def _validate_files(self) -> None:
         """Validate the ND2 files meet the required specifications."""
-        if self.pattern_channels != 0:
-            raise ValueError("Patterns ND2 file shouldn't have any channels")
+        if self.pattern_channels != 1:
+            raise ValueError("Patterns ND2 file should have exactly 1 channel")
         if self.pattern_frames != 1:
             raise ValueError("Patterns ND2 file must contain exactly 1 frame")
         if self.pattern_views != self.cells_views:
@@ -121,8 +121,6 @@ class Generator:
         self.centers = None
         self.frame_nuclei = None
         self.frame_cyto = None
-        self.patterns_xarr = None
-        self.cells_xarr = None
         logger.debug("Initialized memory variables")
 
     # Private Methods

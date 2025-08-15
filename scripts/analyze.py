@@ -7,14 +7,14 @@ from cell_filter.core.analyze import Analyzer
 import logging
 
 # Define parameters here
-PATTERNS = "path/to/patterns.nd2"
-CELLS = "path/to/cells.nd2"
+PATTERNS = "data/20250806_patterns_after.nd2"
+CELLS = "data/20250806_MDCK_timelapse_crop_fov0004.nd2"
 NUCLEI_CHANNEL = 1
-OUTPUT = "path/to/output.json"
+OUTPUT = "data/analysis/"
 N_CELLS = 4
 USE_GPU = True  # Set to True to use GPU
 ALL = False  # Set to False to use RANGE
-RANGE = "0:10"  # Only used if ALL is False
+RANGE = "0:1"  # Only used if ALL is False, end is exclusive
 DEBUG = False
 
 # Configure logging

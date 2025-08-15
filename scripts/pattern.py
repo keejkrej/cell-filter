@@ -7,8 +7,8 @@ from cell_filter.core.pattern import Patterner
 import logging
 
 # Define parameters here
-PATTERNS = "path/to/patterns.nd2"
-CELLS = "path/to/cells.nd2"
+PATTERNS = "data/20250806_patterns_after.nd2"
+CELLS = "data/20250806_MDCK_timelapse_crop_fov0004.nd2"
 NUCLEI_CHANNEL = 1  # default in CLI
 VIEW = 0  # Only used if VIEW_ALL is False
 VIEW_ALL = False  # Set to False to use VIEW
@@ -31,7 +31,7 @@ if not os.path.exists(CELLS):
     exit(1)
 
 # Initialize info displayer
-displayer = Patterner(
+patterner = Patterner(
     patterns_path=PATTERNS,
     cells_path=CELLS,
     nuclei_channel=NUCLEI_CHANNEL,
@@ -39,11 +39,11 @@ displayer = Patterner(
 
 if VIEW_ALL:
     logger.info("Displaying all views")
-    for view_idx in range(displayer.n_views):
+    for view_idx in range(patterner.n_views):
         logger.info(f"Displaying view {view_idx}")
-        displayer.plot_view(view_idx)
+        patterner.plot_view(view_idx)
 else:
     logger.info(f"Plotting view {VIEW}")
-    displayer.plot_view(VIEW, OUTPUT)
+    patterner.plot_view(VIEW, OUTPUT)
     logger.info("Plotting completed successfully")
-displayer.close()
+patterner.close()
