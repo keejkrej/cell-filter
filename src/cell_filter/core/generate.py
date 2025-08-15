@@ -6,8 +6,7 @@ import cv2
 import numpy as np
 import nd2
 from pathlib import Path
-from dataclasses import dataclass, field
-from typing import List
+from dataclasses import dataclass
 import logging
 from cell_filter.utils.nd2_utils import load_nd2_metadata, get_nd2_frame
 
@@ -27,6 +26,7 @@ class GeneratorParameters:
     edge_tolerance: int = 5
     morph_dilate_size: tuple[int, int] = (5, 5)
     nuclei_channel: int = 1
+
 
 class Generator:
     """Generate and process cell data from images."""
@@ -383,7 +383,7 @@ class Generator:
 
     def extract_cell(
         self, pattern_idx: int, normalize: bool = False
-    ) -> List[np.ndarray]:
+    ) -> list[np.ndarray]:
         """Extract regions from all loaded cell channels at once."""
         if self.frame_cell is None:
             raise ValueError("Cell frames must be loaded before extraction")

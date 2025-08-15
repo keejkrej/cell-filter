@@ -28,9 +28,7 @@ class Patterner:
             self.generator = Generator(
                 patterns_path,
                 cells_path,
-                GeneratorParameters(
-                    nuclei_channel=nuclei_channel
-                ),
+                GeneratorParameters(nuclei_channel=nuclei_channel),
             )
             self.n_views = self.generator.pattern_views
             logger.info(

@@ -32,9 +32,7 @@ class Extractor:
             self.generator = Generator(
                 patterns_path,
                 cells_path,
-                parameters=GeneratorParameters(
-                    nuclei_channel=nuclei_channel
-                ),
+                parameters=GeneratorParameters(nuclei_channel=nuclei_channel),
             )
             logger.info(
                 f"Successfully initialized Extractor with patterns: {patterns_path} and cells: {cells_path}"

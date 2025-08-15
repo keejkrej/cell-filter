@@ -73,9 +73,7 @@ class Analyzer:
         self.output_folder = str(Path(output_folder).resolve())
 
         try:
-            self._init_generator(
-                patterns_path, cells_path, nuclei_channel
-            )
+            self._init_generator(patterns_path, cells_path, nuclei_channel)
             self._init_counter(n_cells, use_gpu)
             logger.debug(
                 f"Successfully initialized Analyzer with patterns: {patterns_path} and cells: {cells_path}"
@@ -95,9 +93,7 @@ class Analyzer:
             self.generator = Generator(
                 patterns_path=patterns_path,
                 cells_path=cells_path,
-                parameters=GeneratorParameters(
-                    nuclei_channel=nuclei_channel
-                ),
+                parameters=GeneratorParameters(nuclei_channel=nuclei_channel),
             )
             logger.debug(
                 f"Initialized generator with {self.generator.n_views} views and {self.generator.n_frames} frames"
