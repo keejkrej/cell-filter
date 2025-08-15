@@ -11,7 +11,7 @@ PATTERNS = "path/to/patterns.nd2"
 CELLS = "path/to/cells.nd2"
 NUCLEI_CHANNEL = 1  # default in CLI
 VIEW = 0  # Only used if VIEW_ALL is False
-VIEW_ALL = True  # Set to False to use VIEW
+VIEW_ALL = False  # Set to False to use VIEW
 OUTPUT = None  # Only used if VIEW_ALL is False
 DEBUG = False
 

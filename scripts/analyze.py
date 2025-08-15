@@ -7,14 +7,13 @@ from cell_filter.core.analyze import Analyzer
 import logging
 
 # Define parameters here
-PATTERNS = "path/to/patterns.tif"
-CELLS = "path/to/cells.tif"
-NUCLEI_CHANNEL = 0
+PATTERNS = "path/to/patterns.nd2"
+CELLS = "path/to/cells.nd2"
+NUCLEI_CHANNEL = 1
 OUTPUT = "path/to/output.json"
-N_CELLS = 3
-DIAMETER = 15
-NO_GPU = False  # Set to True to disable GPU
-ALL = True  # Set to False to use RANGE
+N_CELLS = 4
+USE_GPU = True  # Set to True to use GPU
+ALL = False  # Set to False to use RANGE
 RANGE = "0:10"  # Only used if ALL is False
 DEBUG = False
 
@@ -39,7 +38,7 @@ analyzer = Analyzer(
     cells_path=CELLS,
     output_folder=OUTPUT,
     n_cells=N_CELLS,
-    use_gpu=not NO_GPU,
+    use_gpu=USE_GPU,
     nuclei_channel=NUCLEI_CHANNEL,
 )
 

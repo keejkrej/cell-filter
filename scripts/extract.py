@@ -10,7 +10,7 @@ from pathlib import Path
 # Define parameters here
 PATTERNS = "path/to/patterns.nd2"
 CELLS = "path/to/cells.nd2"
-NUCLEI_CHANNEL = 0
+NUCLEI_CHANNEL = 1
 TIME_SERIES = "path/to/time_series_json_dir"
 OUTPUT = "path/to/output_dir"
 MIN_FRAMES = 20
