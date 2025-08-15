@@ -78,6 +78,7 @@ class Generator:
         try:
             # Create xarray instance for lazy loading
             self.cells_xarr = nd2.imread(str(self.cells_path), xarray=True, dask=True)
+            self.dtype = self.cells_xarr.dtype
             # Load metadata using utility function
             metadata = load_nd2_metadata(self.cells_path)
             self.cells_channels = metadata["n_channels"]

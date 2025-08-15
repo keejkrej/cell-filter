@@ -41,8 +41,7 @@ venv.bak/
 .ipynb_checkpoints
 
 # Project specific
-data/simulated/
-data/samples/
+data/
 *.pkl
 *.png
 *.jpg
