@@ -12,12 +12,18 @@ See [PROJECT.md](PROJECT.md) for a high-level project summary.
 
 # Usage
 
-- copy [scripts/pattern.py](scripts/pattern.py), [scripts/analyze.py](scripts/analyze.py), and [scripts/extract.py](scripts/extract.py) to your working directory,
-- edit the parameters in the scripts,
-- run the scripts in the following order:
+- You can either copy [scripts/pattern.py](scripts/pattern.py), [scripts/analyze.py](scripts/analyze.py), and [scripts/extract.py](scripts/extract.py) to your working directory and run them directly after editing parameters, or use the provided package CLI entrypoints.
+
+- Recommended: use the package entrypoints so you can keep configuration in your working directory and run via the installed package. Examples:
 
 ```bash
-python pattern.py
-python analyze.py
-python extract.py
+# show CLI help
+python -m cell_filter.cli.pattern --help
+python -m cell_filter.cli.analysis --help
+python -m cell_filter.cli.extract --help
+
+# run the same sequence as before (edit args as needed)
+python -m cell_filter.cli.pattern --patterns data/20250806_patterns_after.nd2 --cells data/20250806_MDCK_timelapse_crop_fov0004.nd2
+python -m cell_filter.cli.analysis --patterns data/20250806_patterns_after.nd2 --cells data/20250806_MDCK_timelapse_crop_fov0004.nd2
+python -m cell_filter.cli.extract --patterns data/20250806_patterns_after.nd2 --cells data/20250806_MDCK_timelapse_crop_fov0004.nd2
 ```
