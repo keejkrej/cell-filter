@@ -1,10 +1,10 @@
 """
-Core analyzer functionality for cell-filter.
+Core filter functionality for cell-filter.
 """
 
 import json
 import time
-from .generate import Generator, GeneratorParameters
+from .crop import Cropper, CropperParameters
 from .count import CellposeCounter
 import logging
 from pathlib import Path
@@ -55,8 +55,8 @@ class Patterns:
         return {idx: list(frames) for idx, frames in self.saved.items() if frames}
 
 
-class Analyzer:
-    """Analyze time series data and track nuclei counts."""
+class Filterer:
+    """Filter frame data and track nuclei counts."""
 
     # Constructor
 
@@ -66,46 +66,45 @@ class Analyzer:
         cells_path: str,
         output_folder: str,
         n_cells: int,
-        use_gpu: bool,
         nuclei_channel: int,
     ) -> None:
-        """Initialize the Analyzer with configuration parameters."""
+        """Initialize the Filterer with configuration parameters."""
         self.output_folder = str(Path(output_folder).resolve())
 
         try:
-            self._init_generator(patterns_path, cells_path, nuclei_channel)
-            self._init_counter(n_cells, use_gpu)
+            self._init_cropper(patterns_path, cells_path, nuclei_channel)
+            self._init_counter(n_cells)
             logger.debug(
-                f"Successfully initialized Analyzer with patterns: {patterns_path} and cells: {cells_path}"
+                f"Successfully initialized Filterer with patterns: {patterns_path} and cells: {cells_path}"
             )
         except Exception as e:
-            logger.error(f"Error initializing Analyzer: {e}")
-            raise ValueError(f"Error initializing Analyzer: {e}")
+            logger.error(f"Error initializing Filterer: {e}")
+            raise ValueError(f"Error initializing Filterer: {e}")
 
-    def _init_generator(
+    def _init_cropper(
         self,
         patterns_path: str,
         cells_path: str,
         nuclei_channel: int,
     ) -> None:
-        """Initialize the cell generator."""
+        """Initialize the cell cropper."""
         try:
-            self.generator = Generator(
+            self.cropper = Cropper(
                 patterns_path=patterns_path,
                 cells_path=cells_path,
-                parameters=GeneratorParameters(nuclei_channel=nuclei_channel),
+                parameters=CropperParameters(nuclei_channel=nuclei_channel),
             )
             logger.debug(
-                f"Initialized generator with {self.generator.n_views} views and {self.generator.n_frames} frames"
+                f"Initialized cropper with {self.cropper.n_views} views and {self.cropper.n_frames} frames"
             )
         except Exception as e:
-            logger.error(f"Error initializing generator: {e}")
+            logger.error(f"Error initializing cropper: {e}")
             raise
 
-    def _init_counter(self, n_cells: int, use_gpu: bool) -> None:
+    def _init_counter(self, n_cells: int) -> None:
         """Initialize the cell counter."""
         try:
-            self.counter = CellposeCounter(use_gpu=use_gpu)
+            self.counter = CellposeCounter()
             self.n_cells = n_cells
             logger.debug(f"Initialized counter with n_cells={n_cells}")
         except Exception as e:
@@ -118,14 +117,14 @@ class Analyzer:
         """Process a single frame and update pattern tracking."""
         try:
             # Load current frame
-            self.generator.load_nuclei(frame_idx)
+            self.cropper.load_nuclei(frame_idx)
 
             # Collect all nuclei for this frame
             nuclei_list = []
             tracked_indices = self.patterns.get_tracked_indices()
             for pattern_idx in tracked_indices:
                 try:
-                    nuclei = self.generator.extract_nuclei(pattern_idx, normalize=True)
+                    nuclei = self.cropper.extract_nuclei(pattern_idx, normalize=True)
                     nuclei_list.append(nuclei)
                 except Exception as e:
                     logger.warning(
@@ -188,29 +187,29 @@ class Analyzer:
 
     # Public Methods
 
-    def analyze_time_series(self, view_idx: int) -> dict:
-        """Analyze time series data and track nuclei counts for a single view."""
-        logger.info(f"Starting time series analysis for view {view_idx}")
+    def filter_frames(self, view_idx: int) -> dict:
+        """Filter frame data and track nuclei counts for a single view."""
+        logger.info(f"Starting frame filtering for view {view_idx}")
 
         try:
-            # Initialize analysis
-            self.generator.load_view(view_idx)
-            self.generator.load_patterns()
-            self.generator.process_patterns()
-            self.patterns = Patterns(self.generator.n_patterns)
+            # Initialize filtering
+            self.cropper.load_view(view_idx)
+            self.cropper.load_patterns()
+            self.cropper.process_patterns()
+            self.patterns = Patterns(self.cropper.n_patterns)
 
             # Process each frame
-            for frame_idx in range(self.generator.n_frames):
-                logger.info(f"Processing frame {frame_idx}/{self.generator.n_frames}")
+            for frame_idx in range(self.cropper.n_frames):
+                logger.info(f"Processing frame {frame_idx}/{self.cropper.n_frames}")
                 self._process_frame(frame_idx)
 
             # Build results
-            results = {"time_series": self.patterns.get_valid_patterns()}
+            results = {"filter_results": self.patterns.get_valid_patterns()}
 
             # Log final summary
-            logger.debug("\nAnalysis complete:")
+            logger.debug("\nFiltering complete:")
             logger.debug(
-                f"  Final valid patterns: {list(results['time_series'].keys())}"
+                f"  Final valid patterns: {list(results['filter_results'].keys())}"
             )
 
             # Log final dropped patterns summary
@@ -223,8 +222,8 @@ class Analyzer:
             return results
 
         except Exception as e:
-            logger.error(f"Error in time series analysis: {e}")
-            raise ValueError(f"Error in time series analysis: {e}")
+            logger.error(f"Error in frame filtering: {e}")
+            raise ValueError(f"Error in frame filtering: {e}")
 
     def process_views(self, start_view: int, end_view: int) -> None:
         """
@@ -239,14 +238,10 @@ class Analyzer:
         """
         print("start_view", start_view)
         print("end_view", end_view)
-        print("n_views", self.generator.n_views)
-        if (
-            start_view < 0
-            or end_view > self.generator.n_views
-            or start_view > end_view
-        ):
+        print("n_views", self.cropper.n_views)
+        if start_view < 0 or end_view > self.cropper.n_views or start_view > end_view:
             raise ValueError(
-                f"Invalid view range: {start_view} to {end_view} (total views: {self.generator.n_views})"
+                f"Invalid view range: {start_view} to {end_view} (total views: {self.cropper.n_views})"
             )
 
         # Create output folder if it doesn't exist
@@ -279,14 +274,15 @@ class Analyzer:
             try:
                 # Process the view
                 time_start = time.time()
-                results = self.analyze_time_series(view_idx)
+                results = self.filter_frames(view_idx)
                 time_end = time.time()
                 logger.info(
                     f"Time taken to process view {view_idx}: {time_end - time_start} seconds"
                 )
 
                 # Save results immediately
-                view_output_path = output_path / f"time_series_{view_idx:03d}.json"
+                view_output_path = output_path / f"fov_{view_idx:03d}" / f"fov_{view_idx:03d}_filter.json"
+                view_output_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(view_output_path, "w") as f:
                     json.dump(results, f, indent=2)
 
@@ -304,4 +300,4 @@ class Analyzer:
         logger.debug(
             f"Sequential processing complete for views {start_view} to {end_view}"
         )
-        self.generator.close_files()
+        self.cropper.close_files()

@@ -9,7 +9,7 @@ def main():
     p.add_argument("--patterns", default="data/20250806_patterns_after.nd2")
     p.add_argument("--cells", default="data/20250806_MDCK_timelapse_crop_fov0004.nd2")
     p.add_argument("--nuclei-channel", type=int, default=1)
-    p.add_argument("--time-series", default="data/analysis/")
+    p.add_argument("--filter-results", default="data/analysis/")
     p.add_argument("--output", default="data/analysis/")
     p.add_argument("--min-frames", type=int, default=20)
     p.add_argument("--max-gap", type=int, default=6, help="Maximum frame gap before splitting sequences")
@@ -33,7 +33,7 @@ def main():
         output_folder=args.output,
         nuclei_channel=args.nuclei_channel,
     )
-    extractor.extract(filter_results_dir=args.time_series, min_frames=args.min_frames, max_gap=args.max_gap)
+    extractor.extract(filter_results_dir=args.filter_results, min_frames=args.min_frames, max_gap=args.max_gap)
 
 
 if __name__ == "__main__":

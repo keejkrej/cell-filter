@@ -1,5 +1,5 @@
 """
-Core cell generator functionality for cell-filter.
+Core cell cropper functionality for cell-filter.
 """
 
 import cv2
@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class GeneratorParameters:
-    """Parameters for the Generator class."""
+class CropperParameters:
+    """Parameters for the Cropper class."""
 
     gaussian_blur_size: tuple[int, int] = (11, 11)
     bimodal_threshold: float = 0.1
@@ -28,15 +28,15 @@ class GeneratorParameters:
     nuclei_channel: int = 1
 
 
-class Generator:
-    """Generate and process cell data from images."""
+class Cropper:
+    """Crop and process cell data from images."""
 
     # Constructor
 
     def __init__(
-        self, patterns_path: str, cells_path: str, parameters: GeneratorParameters
+        self, patterns_path: str, cells_path: str, parameters: CropperParameters
     ) -> None:
-        """Initialize Generator and set paths."""
+        """Initialize Cropper and set paths."""
         self.patterns_path = Path(patterns_path).resolve()
         self.cells_path = Path(cells_path).resolve()
         self.parameters = parameters
@@ -46,7 +46,7 @@ class Generator:
             self._init_cells()
             self._validate_files()
             logger.debug(
-                f"Successfully initialized Generator with patterns: {self.patterns_path} and cells: {self.cells_path}"
+                f"Successfully initialized Cropper with patterns: {self.patterns_path} and cells: {self.cells_path}"
             )
         except Exception as e:
             self.close_files()
@@ -84,9 +84,21 @@ class Generator:
             self.cells_channels = metadata["n_channels"]
             self.cells_frames = metadata["n_frames"]
             self.cells_views = metadata["n_fov"]
+            # Store channel names from metadata
+            self.cells_channel_names = metadata["channels"]
+
+            # Validate channel count consistency
+            if len(self.cells_channel_names) != self.cells_channels:
+                raise ValueError(
+                    f"Channel count mismatch in cells ND2 file: "
+                    f"metadata reports {self.cells_channels} channels but "
+                    f"found {len(self.cells_channel_names)} channel names"
+                )
+
             logger.debug(
                 f"Channels: {self.cells_channels}, Frames: {self.cells_frames}, Views: {self.cells_views}"
             )
+            logger.debug(f"Channel names: {self.cells_channel_names}")
             logger.info(f"Data type: {self.dtype}")
         except Exception as e:
             logger.error(f"Error initializing cells reader: {e}")

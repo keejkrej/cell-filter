@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from cell_filter.core.extract import Extractor
+from cell_filter.core.filter import Filterer
 from cell_filter.utils.gpu_utils import validate_segmentation_requirements
 import logging
 
@@ -9,31 +9,37 @@ def main():
     p.add_argument("--patterns", default="data/20250806_patterns_after.nd2")
     p.add_argument("--cells", default="data/20250806_MDCK_timelapse_crop_fov0004.nd2")
     p.add_argument("--nuclei-channel", type=int, default=1)
-    p.add_argument("--time-series", default="data/analysis/")
     p.add_argument("--output", default="data/analysis/")
-    p.add_argument("--min-frames", type=int, default=20)
-    p.add_argument("--max-gap", type=int, default=6, help="Maximum frame gap before splitting sequences")
+    p.add_argument("--n-cells", type=int, default=4)
     p.add_argument("--debug", action="store_true", help="Enable debug logging")
+    p.add_argument("--all", action="store_true")
+    p.add_argument("--range", default="0:1")
     args = p.parse_args()
 
     # Configure logging
     log_level = logging.DEBUG if args.debug else logging.INFO
-    logging.basicConfig(level=log_level, format="%(levelname)s - %(name)s - %(message)s")
+    logging.basicConfig(
+        level=log_level, format="%(levelname)s - %(name)s - %(message)s"
+    )
 
-    # GPU validation (always required for segmentation)
+    # GPU validation (always required)
     try:
         validate_segmentation_requirements(enable_segmentation=True)
     except Exception as e:
         logging.error(f"GPU validation failed: {e}")
         return 1
-
-    extractor = Extractor(
+    filter_processor = Filterer(
         patterns_path=args.patterns,
         cells_path=args.cells,
         output_folder=args.output,
+        n_cells=args.n_cells,
         nuclei_channel=args.nuclei_channel,
     )
-    extractor.extract(filter_results_dir=args.time_series, min_frames=args.min_frames, max_gap=args.max_gap)
+    if args.all:
+        filter_processor.process_views(0, filter_processor.cropper.n_views)
+    else:
+        view_range = list(map(int, args.range.split(":")))
+        filter_processor.process_views(view_range[0], view_range[1])
 
 
 if __name__ == "__main__":

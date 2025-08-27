@@ -4,6 +4,7 @@ Concise extraction script for cell-filter.
 
 import os
 from cell_filter.core.extract import Extractor
+from cell_filter.utils.gpu_utils import validate_segmentation_requirements
 import logging
 from pathlib import Path
 
@@ -11,9 +12,10 @@ from pathlib import Path
 PATTERNS = "data/20250806_patterns_after.nd2"
 CELLS = "data/20250806_MDCK_timelapse_crop_fov0004.nd2"
 NUCLEI_CHANNEL = 1
-TIME_SERIES = "data/analysis/"
+FILTER_RESULTS = "data/analysis/"
 OUTPUT = "data/analysis/"
 MIN_FRAMES = 10
+MAX_GAP = 6  # Maximum frame gap before splitting pattern sequences
 DEBUG = False
 
 # Configure logging
@@ -31,14 +33,22 @@ if not os.path.exists(CELLS):
     logger.error(f"Cells file not found: {CELLS}")
     exit(1)
 
-# Check if time series directory exists
-if not os.path.exists(TIME_SERIES):
-    logger.error(f"Time series directory not found: {TIME_SERIES}")
+# Check if filter results directory exists
+if not os.path.exists(FILTER_RESULTS):
+    logger.error(f"Filter results directory not found: {FILTER_RESULTS}")
     exit(1)
 
 # Create output directory if it doesn't exist
 output_dir = Path(OUTPUT)
 output_dir.mkdir(parents=True, exist_ok=True)
+
+# GPU validation (always required for segmentation)
+try:
+    validate_segmentation_requirements(enable_segmentation=True)
+    logger.info("GPU validation successful for segmentation")
+except Exception as e:
+    logger.error(f"GPU validation failed: {e}")
+    exit(1)
 
 # Initialize extractor
 extractor = Extractor(
@@ -49,6 +59,6 @@ extractor = Extractor(
 )
 
 # Extract frames
-logger.info("Starting extraction process")
-extractor.extract(time_series_dir=TIME_SERIES, min_frames=MIN_FRAMES)
+logger.info("Starting extraction process with comprehensive segmentation")
+extractor.extract(filter_results_dir=FILTER_RESULTS, min_frames=MIN_FRAMES, max_gap=MAX_GAP)
 logger.info("Extraction completed successfully")

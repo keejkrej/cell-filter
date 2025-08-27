@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import logging
-from .generate import Generator, GeneratorParameters
+from .crop import Cropper, CropperParameters
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -25,12 +25,12 @@ class Patterner:
     ) -> None:
         """Initialize Patterner and set paths."""
         try:
-            self.generator = Generator(
+            self.cropper = Cropper(
                 patterns_path,
                 cells_path,
-                GeneratorParameters(nuclei_channel=nuclei_channel),
+                CropperParameters(nuclei_channel=nuclei_channel),
             )
-            self.n_views = self.generator.pattern_views
+            self.n_views = self.cropper.pattern_views
             logger.info(
                 f"Successfully initialized Patterner with patterns: {patterns_path} and cells: {cells_path}"
             )
@@ -46,12 +46,12 @@ class Patterner:
         if len(image.shape) == 2:
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
 
-        if self.generator.bounding_boxes is None:
+        if self.cropper.bounding_boxes is None:
             return image
 
-        for pattern_idx in range(self.generator.n_patterns):
+        for pattern_idx in range(self.cropper.n_patterns):
             # Get bounding box coordinates
-            bbox = self.generator.bounding_boxes[pattern_idx]
+            bbox = self.cropper.bounding_boxes[pattern_idx]
             if bbox is not None:
                 x, y, w, h = bbox
 
@@ -83,18 +83,18 @@ class Patterner:
         """Plot patterns image for a specific view with bounding boxes and indices."""
         try:
             # Load view and patterns
-            self.generator.load_view(view_idx)
-            self.generator.load_patterns()
-            self.generator.process_patterns()
+            self.cropper.load_view(view_idx)
+            self.cropper.load_patterns()
+            self.cropper.process_patterns()
 
             # Create figure
             plt.figure(figsize=(15, 8))
             ax = plt.gca()
 
             # Get patterns image and draw boxes
-            if self.generator.thresh is None:
+            if self.cropper.thresh is None:
                 raise ValueError("Threshold image not available")
-            patterns_image = np.copy(self.generator.thresh)
+            patterns_image = np.copy(self.cropper.thresh)
             annotated_image = self._draw_boxes(patterns_image)
 
             # Plot annotated image
@@ -121,5 +121,5 @@ class Patterner:
 
     def close(self) -> None:
         """Close all open files."""
-        self.generator.close_files()
+        self.cropper.close_files()
         logger.info("Closed all files")

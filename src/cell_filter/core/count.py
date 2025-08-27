@@ -11,10 +11,10 @@ class CellposeCounter:
 
     # Constructor
 
-    def __init__(self, use_gpu: bool):
-        """Initialize the Cellpose counter."""
+    def __init__(self):
+        """Initialize the Cellpose counter. GPU is always enabled."""
         self.model = models.CellposeModel(
-            gpu=use_gpu,
+            gpu=True,
         )
 
     # Public Methods
