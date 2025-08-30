@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from cell_filter.core.pattern import Patterner
+from cell_filter.pattern import Patterner
 
 
 def main():
@@ -7,16 +7,16 @@ def main():
     p.add_argument("--patterns", default="data/20250806_patterns_after.nd2")
     p.add_argument("--cells", default="data/20250806_MDCK_timelapse_crop_fov0004.nd2")
     p.add_argument("--nuclei-channel", type=int, default=1)
-    p.add_argument("--view", type=int, default=0)
-    p.add_argument("--view-all", action="store_true")
+    p.add_argument("--fov", type=int, default=0)
+    p.add_argument("--fov-all", action="store_true")
     p.add_argument("--output", default=None)
     args = p.parse_args()
     patterner = Patterner(patterns_path=args.patterns, cells_path=args.cells, nuclei_channel=args.nuclei_channel)
-    if args.view_all:
-        for view_idx in range(patterner.n_views):
-            patterner.plot_view(view_idx)
+    if args.fov_all:
+        for fov_idx in range(patterner.n_fovs):
+            patterner.plot_view(fov_idx)
     else:
-        patterner.plot_view(args.view, args.output)
+        patterner.plot_view(args.fov, args.output)
     patterner.close()
 
 

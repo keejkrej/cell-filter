@@ -63,11 +63,11 @@ class Cropper:
                 str(self.patterns_path), xarray=True, dask=True
             )
             metadata = load_nd2_metadata(self.patterns_path)
-            self.pattern_channels = metadata["n_channels"]
-            self.pattern_frames = metadata["n_frames"]
-            self.pattern_views = metadata["n_fov"]
+            self.pattern_n_channels = metadata["n_channels"]
+            self.pattern_n_frames = metadata["n_frames"]
+            self.pattern_n_fovs = metadata["n_fovs"]
             logger.debug(
-                f"Channels: {self.pattern_channels}, Frames: {self.pattern_frames}, Views: {self.pattern_views}"
+                f"Channels: {self.pattern_n_channels}, Frames: {self.pattern_n_frames}, Views: {self.pattern_n_fovs}"
             )
         except Exception as e:
             logger.error(f"Error initializing patterns reader: {e}")
@@ -81,22 +81,22 @@ class Cropper:
             self.dtype = self.cells_xarr.dtype
             # Load metadata using utility function
             metadata = load_nd2_metadata(self.cells_path)
-            self.cells_channels = metadata["n_channels"]
-            self.cells_frames = metadata["n_frames"]
-            self.cells_views = metadata["n_fov"]
+            self.cells_n_channels = metadata["n_channels"]
+            self.cells_n_frames = metadata["n_frames"]
+            self.cells_n_fovs = metadata["n_fovs"]
             # Store channel names from metadata
             self.cells_channel_names = metadata["channels"]
 
             # Validate channel count consistency
-            if len(self.cells_channel_names) != self.cells_channels:
+            if len(self.cells_channel_names) != self.cells_n_channels:
                 raise ValueError(
                     f"Channel count mismatch in cells ND2 file: "
-                    f"metadata reports {self.cells_channels} channels but "
+                    f"metadata reports {self.cells_n_channels} channels but "
                     f"found {len(self.cells_channel_names)} channel names"
                 )
 
             logger.debug(
-                f"Channels: {self.cells_channels}, Frames: {self.cells_frames}, Views: {self.cells_views}"
+                f"Channels: {self.cells_n_channels}, Frames: {self.cells_n_frames}, Views: {self.cells_n_fovs}"
             )
             logger.debug(f"Channel names: {self.cells_channel_names}")
             logger.info(f"Data type: {self.dtype}")
@@ -106,24 +106,24 @@ class Cropper:
 
     def _validate_files(self) -> None:
         """Validate the ND2 files meet the required specifications."""
-        if self.pattern_channels != 1:
+        if self.pattern_n_channels != 1:
             raise ValueError("Patterns ND2 file should have exactly 1 channel")
-        if self.pattern_frames != 1:
+        if self.pattern_n_frames != 1:
             raise ValueError("Patterns ND2 file must contain exactly 1 frame")
-        if self.pattern_views != self.cells_views:
+        if self.pattern_n_fovs != self.cells_n_fovs:
             raise ValueError(
                 "Patterns and cells ND2 files must contain the same number of views"
             )
-        if self.cells_channels < 2:
+        if self.cells_n_channels < 2:
             raise ValueError("Cells ND2 file must contain at least 2 channels")
 
-        self.n_views = self.cells_views
-        self.n_frames = self.cells_frames
-        logger.debug(f"Validated files: {self.n_views} views, {self.n_frames} frames")
+        self.n_fovs = self.cells_n_fovs
+        self.n_frames = self.cells_n_frames
+        logger.debug(f"Validated files: {self.n_fovs} views, {self.n_frames} frames")
 
     def _init_memory(self) -> None:
         """Initialize memory variables to default values."""
-        self.current_view = 0
+        self.current_fov = 0
         self.current_frame = 0
         self.patterns = None
         self.n_patterns = 0
@@ -132,7 +132,6 @@ class Cropper:
         self.bounding_boxes = None
         self.centers = None
         self.frame_nuclei = None
-        self.frame_cyto = None
         logger.debug("Initialized memory variables")
 
     # Private Methods
@@ -311,22 +310,22 @@ class Cropper:
             "ND2 files are managed by xarray/dask - no explicit closure needed"
         )
 
-    def load_view(self, view_idx: int) -> None:
+    def load_fov(self, fov_idx: int) -> None:
         """Load a specific view from the ND2 files."""
-        if view_idx >= self.n_views or view_idx < 0:
+        if fov_idx >= self.n_fovs or fov_idx < 0:
             raise ValueError(
-                f"View index {view_idx} out of range (0-{self.n_views - 1})"
+                f"View index {fov_idx} out of range (0-{self.n_fovs - 1})"
             )
-        self.current_view = view_idx
-        logger.debug(f"Loaded view {view_idx}")
+        self.current_fov = fov_idx
+        logger.debug(f"Loaded view {fov_idx}")
 
     def load_patterns(self) -> None:
         """Load the patterns from ND2 file."""
         try:
             # Extract the pattern frame using utility function
             # For patterns file, we select frame 0, channel 0, and the current view (P)
-            self.patterns = get_nd2_frame(self.current_view, 0, 0, self.patterns_xarr)
-            logger.debug(f"Loaded patterns for view {self.current_view}")
+            self.patterns = get_nd2_frame(self.current_fov, 0, 0, self.patterns_xarr)
+            logger.debug(f"Loaded patterns for view {self.current_fov}")
         except Exception as e:
             logger.error(f"Error loading patterns: {e}")
             raise ValueError(f"Error loading patterns: {e}")
@@ -341,13 +340,13 @@ class Cropper:
             # Extract the nuclei frame using utility function
             # Select the specific frame, nuclei channel, and current view
             self.frame_nuclei = get_nd2_frame(
-                self.current_view,
+                self.current_fov,
                 self.parameters.nuclei_channel,
                 frame_idx,
                 self.cells_xarr,
             )
             logger.debug(
-                f"Loaded nuclei frame {frame_idx} for view {self.current_view} from channel {self.parameters.nuclei_channel}"
+                f"Loaded nuclei frame {frame_idx} for view {self.current_fov} from channel {self.parameters.nuclei_channel}"
             )
         except Exception as e:
             logger.error(f"Error loading nuclei: {e}")
@@ -363,10 +362,10 @@ class Cropper:
             # Extract frames from all channels at once using channel=-1
             # Select the specific frame and current view
             self.frame_cell = get_nd2_frame(
-                self.current_view, -1, frame_idx, self.cells_xarr
+                self.current_fov, -1, frame_idx, self.cells_xarr
             )
             logger.debug(
-                f"Loaded cell frames {frame_idx} for view {self.current_view} from all channels at once"
+                f"Loaded cell frames {frame_idx} for view {self.current_fov} from all channels at once"
             )
         except Exception as e:
             logger.error(f"Error loading cell: {e}")

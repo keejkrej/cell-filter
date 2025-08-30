@@ -20,6 +20,7 @@ dependencies = [
     "scipy",
     "tifffile",
     "networkx",
+    "pyyaml"
 ]
 requires-python = ">=3.11"
 readme = "README.md"

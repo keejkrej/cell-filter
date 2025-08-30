@@ -85,7 +85,7 @@ def load_nd2_metadata(nd2_path: str | Path) -> ND2Metadata:
                 "n_frames": f.sizes.get("T", 1),
                 "height": f.sizes.get("Y", 0),
                 "width": f.sizes.get("X", 0),
-                "n_fov": f.sizes.get("P", 1),
+                "n_fovs": f.sizes.get("P", 1),
                 # Channel info - extract channel names from Channel objects
                 "channels": [ch.channel.name for ch in (f.metadata.channels or [])],
                 "n_channels": f.sizes.get("C", 1),

@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from cell_filter.core.filter import Filterer
+from cell_filter.filter import Filterer
 from cell_filter.utils.gpu_utils import validate_segmentation_requirements
 import logging
 
@@ -36,10 +36,10 @@ def main():
         nuclei_channel=args.nuclei_channel,
     )
     if args.all:
-        filter_processor.process_views(0, filter_processor.cropper.n_views)
+        filter_processor.process_fovs(0, filter_processor.cropper.n_fovs)
     else:
-        view_range = list(map(int, args.range.split(":")))
-        filter_processor.process_views(view_range[0], view_range[1])
+        fov_range = list(map(int, args.range.split(":")))
+        filter_processor.process_fovs(fov_range[0], fov_range[1])
 
 
 if __name__ == "__main__":

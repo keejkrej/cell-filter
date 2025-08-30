@@ -2,10 +2,11 @@
 Core filter functionality for cell-filter.
 """
 
-import json
+import yaml
+from datetime import datetime, timezone
 import time
-from .crop import Cropper, CropperParameters
-from .count import CellposeCounter
+from cell_filter.core.crop import Cropper, CropperParameters
+from cell_filter.core.count import CellposeCounter
 import logging
 from pathlib import Path
 
@@ -95,7 +96,7 @@ class Filterer:
                 parameters=CropperParameters(nuclei_channel=nuclei_channel),
             )
             logger.debug(
-                f"Initialized cropper with {self.cropper.n_views} views and {self.cropper.n_frames} frames"
+                f"Initialized cropper with {self.cropper.n_fovs} views and {self.cropper.n_frames} frames"
             )
         except Exception as e:
             logger.error(f"Error initializing cropper: {e}")
@@ -187,13 +188,13 @@ class Filterer:
 
     # Public Methods
 
-    def filter_frames(self, view_idx: int) -> dict:
+    def filter_frames(self, fov_idx: int) -> dict:
         """Filter frame data and track nuclei counts for a single view."""
-        logger.info(f"Starting frame filtering for view {view_idx}")
+        logger.info(f"Starting frame filtering for fov {fov_idx}")
 
         try:
             # Initialize filtering
-            self.cropper.load_view(view_idx)
+            self.cropper.load_fov(fov_idx)
             self.cropper.load_patterns()
             self.cropper.process_patterns()
             self.patterns = Patterns(self.cropper.n_patterns)
@@ -225,7 +226,7 @@ class Filterer:
             logger.error(f"Error in frame filtering: {e}")
             raise ValueError(f"Error in frame filtering: {e}")
 
-    def process_views(self, start_view: int, end_view: int) -> None:
+    def process_fovs(self, start_fov: int, end_fov: int) -> None:
         """
         Process a range of views sequentially.
 
@@ -236,12 +237,12 @@ class Filterer:
         Raises:
             ValueError: If view range is invalid
         """
-        print("start_view", start_view)
-        print("end_view", end_view)
-        print("n_views", self.cropper.n_views)
-        if start_view < 0 or end_view > self.cropper.n_views or start_view > end_view:
+        print("start_view", start_fov)
+        print("end_view", end_fov)
+        print("n_views", self.cropper.n_fovs)
+        if start_fov < 0 or end_fov > self.cropper.n_fovs or start_fov > end_fov:
             raise ValueError(
-                f"Invalid view range: {start_view} to {end_view} (total views: {self.cropper.n_views})"
+                f"Invalid view range: {start_fov} to {end_fov} (total views: {self.cropper.n_fovs})"
             )
 
         # Create output folder if it doesn't exist
@@ -249,55 +250,69 @@ class Filterer:
         output_path.mkdir(parents=True, exist_ok=True)
 
         # Path for tracking file
-        tracking_file = output_path / "processed_views.json"
+        tracking_file = output_path / "processed_views.yaml"
 
         # Load previously processed views if tracking file exists
-        processed_views = set()
+        # Store as a list of records: [{"fov": int, "datetime": iso_datetime}, ...]
+        processed_views_list: list[dict] = []
+        processed_views_set: set[int] = set()
         if tracking_file.exists():
             try:
                 with open(tracking_file, "r") as f:
-                    processed_views = set(json.load(f))
-                logger.debug(f"Found {len(processed_views)} previously processed views")
+                    raw = yaml.safe_load(f) or []
+                if not isinstance(raw, list):
+                    raise ValueError("processed_views.yaml must be a list of {fov, datetime} records")
+                for item in raw:
+                    try:
+                        fov = int(item["fov"])
+                        dt = item.get("datetime")
+                        processed_views_list.append({"fov": fov, "datetime": dt})
+                        processed_views_set.add(fov)
+                    except Exception:
+                        logger.warning(f"Skipping invalid processed view entry: {item}")
+                logger.debug(f"Found {len(processed_views_list)} previously processed views")
             except Exception as e:
                 logger.warning(f"Error reading tracking file: {e}")
 
         logger.debug(
-            f"Starting sequential processing for views {start_view} to {end_view}"
+            f"Starting sequential processing for views {start_fov} to {end_fov}"
         )
 
-        for view_idx in range(start_view, end_view):
+        for fov_idx in range(start_fov, end_fov):
             # Skip if already processed
-            if view_idx in processed_views:
-                logger.info(f"Skipping already processed view {view_idx}")
+            if fov_idx in processed_views_set:
+                logger.info(f"Skipping already processed fov {fov_idx}")
                 continue
 
             try:
                 # Process the view
                 time_start = time.time()
-                results = self.filter_frames(view_idx)
+                results = self.filter_frames(fov_idx)
                 time_end = time.time()
                 logger.info(
-                    f"Time taken to process view {view_idx}: {time_end - time_start} seconds"
+                    f"Time taken to process fov {fov_idx}: {time_end - time_start} seconds"
                 )
 
                 # Save results immediately
-                view_output_path = output_path / f"fov_{view_idx:03d}" / f"fov_{view_idx:03d}_filter.json"
+                view_output_path = output_path / f"fov_{fov_idx:03d}" / f"fov_{fov_idx:03d}_filter.yaml"
                 view_output_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(view_output_path, "w") as f:
-                    json.dump(results, f, indent=2)
+                    yaml.safe_dump(results, f, sort_keys=False)
 
-                # Update tracking file
-                processed_views.add(view_idx)
+                # Update tracking list with current UTC ISO datetime
+                now_iso = datetime.now(timezone.utc).isoformat()
+                processed_views_list.append({"fov": fov_idx, "datetime": now_iso})
+                processed_views_set.add(fov_idx)
                 with open(tracking_file, "w") as f:
-                    json.dump(sorted(list(processed_views)), f, indent=2)
+                    yaml.safe_dump(processed_views_list, f, sort_keys=False)
 
-                logger.info(f"Saved results for view {view_idx} to {view_output_path}")
+                logger.info(f"Saved results for fov {fov_idx} to {view_output_path}")
             except Exception as e:
-                logger.error(f"Error processing view {view_idx}: {e}")
-                # Continue with next view even if this one fails
+                logger.error(f"Error processing fov {fov_idx}: {e}")
+                # Continue with next fov even if this one fails
                 continue
 
         logger.debug(
-            f"Sequential processing complete for views {start_view} to {end_view}"
+            f"Sequential processing complete for fovs {start_fov} to {end_fov}"
         )
         self.cropper.close_files()

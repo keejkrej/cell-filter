@@ -7,7 +7,6 @@ operations are attempted.
 """
 
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -78,13 +77,13 @@ def _check_cuda_availability() -> bool:
         return False
 
 
-def get_gpu_info() -> Optional[dict]:
+def get_gpu_info() -> dict | None:
     """
     Get information about available GPUs.
 
     Returns
     -------
-    dict or None
+        dict | None
         Dictionary containing GPU information, or None if no GPU available
     """
     try:

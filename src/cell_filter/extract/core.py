@@ -2,11 +2,11 @@
 Core extractor functionality for cell-filter.
 """
 
-import json
+import yaml
 from pathlib import Path
 import numpy as np
-from .crop import Cropper, CropperParameters
-from .segmentation import CellposeSegmenter
+from cell_filter.core.crop import Cropper, CropperParameters
+from cell_filter.core.segmentation import CellposeSegmenter
 import logging
 
 # Configure logging
@@ -126,8 +126,8 @@ class Extractor:
         pattern_idx: int,
         start_frame: int,
         end_frame: int,
-        frame_output_path: Path,
-        json_output_path: Path,
+        npy_output_path: Path,
+        yaml_output_path: Path,
     ) -> None:
         """Extract and save frame stack for a pattern sequence with optional segmentation."""
 
@@ -172,9 +172,7 @@ class Extractor:
         segmentation_array = np.array(segmentation_stack)  # Shape: (n_frames, h, w)
 
         # Add channel dimension to segmentation
-        segmentation_with_channel = segmentation_array[
-            :, np.newaxis, :, :
-        ]  # Shape: (n_frames, 1, h, w)
+        segmentation_with_channel = segmentation_array[:, np.newaxis, :, :]  # Shape: (n_frames, 1, h, w)
 
         # Expand pattern to match frame dimensions
         # pattern has shape (h, w), so we add new axes to make it (1, h, w)
@@ -184,9 +182,7 @@ class Extractor:
         )  # Shape: (n_frames, h, w)
 
         # Add channel dimension to pattern to make it (n_frames, 1, h, w)
-        pattern_with_channel = pattern_expanded[
-            :, np.newaxis, :, :
-        ]  # Shape: (n_frames, 1, h, w)
+        pattern_with_channel = pattern_expanded[:, np.newaxis, :, :]  # Shape: (n_frames, 1, h, w)
 
         # Stack pattern, cell data, and segmentation along channel axis
         # Order: pattern first, then cell channels, then segmentation
@@ -195,7 +191,7 @@ class Extractor:
             [pattern_with_channel, cell_array, segmentation_with_channel], axis=1
         )
 
-        # Prepare metadata for NPZ
+        # Prepare metadata for npy
         pattern_bbox = (
             self.cropper.bounding_boxes[pattern_idx]
             if self.cropper.bounding_boxes
@@ -213,47 +209,26 @@ class Extractor:
             # Fallback to generic names
             channel_names = ["pattern"] + [f"cell_ch_{i}" for i in range(n_cell_channels)] + ["segmentation"]
 
-        # Change file extension to .npz
-        npz_output_path = frame_output_path.with_suffix(".npz")
+        # Save as npy
+        np.save(npy_output_path, final_stack)
 
-        # Save as NPZ with multiple arrays
-        metadata_for_npz = {
+        # Save simple metadata as YAML
+        metadata = {
             "start_frame": start_frame,
             "end_frame": end_frame,
-            "n_frames": n_frames,
-            "pattern_bbox": pattern_bbox,
+            "channels": channel_names,
+            "pattern_bbox": pattern_bbox
         }
 
-        channel_info_for_npz = {
-            "pattern_channel_idx": 0,
-            "cell_channel_indices": list(range(1, n_cell_channels + 1)),
-            "segmentation_channel_idx": n_cell_channels + 1,
-            "total_channels": final_stack.shape[1],
-        }
-
-        np.savez_compressed(
-            npz_output_path,
-            image_stack=final_stack,
-            metadata=np.array([metadata_for_npz], dtype=object),
-            channel_info=np.array([channel_info_for_npz], dtype=object),
-        )
-
-        # Save simple metadata as JSON
-        simple_metadata = {
-            "start_frame": start_frame,
-            "end_frame": end_frame,
-            "channels": channel_names
-        }
-
-        with open(json_output_path, "w") as f:
-            json.dump(simple_metadata, f, indent=2)
+        with open(yaml_output_path, "w") as f:
+            yaml.safe_dump(metadata, f, sort_keys=False)
 
         logger.info(
-            f"Saved pattern {pattern_idx} frames from {start_frame} to {end_frame} to {npz_output_path}"
+            f"Saved pattern {pattern_idx} frames from {start_frame} to {end_frame} to {npy_output_path}"
         )
 
     def _process_filter_results(
-        self, filter_results: dict, view_idx: int, output_dir: Path, min_frames: int, max_gap: int = 6
+        self, filter_results: dict, fov_idx: int, output_dir: Path, min_frames: int, max_gap: int = 6
     ) -> None:
         """Process filter results for a single view."""
         # Refine results
@@ -263,19 +238,13 @@ class Extractor:
         filter_results = self._add_head_tail(filter_results)
 
         # Load view and patterns
-        self.cropper.load_view(view_idx)
+        self.cropper.load_fov(fov_idx)
         self.cropper.load_patterns()
         self.cropper.process_patterns()
 
         # Create FOV directory
-        fov_dir = output_dir / f"fov_{view_idx:03d}"
+        fov_dir = output_dir / f"fov_{fov_idx:03d}"
         fov_dir.mkdir(parents=True, exist_ok=True)
-
-        # Create extract summary data
-        extract_data = {
-            "fov_id": view_idx,
-            "valid_sequences": []
-        }
 
         # Process each pattern
         for pattern_sequence_idx, (start_frame, end_frame) in filter_results.items():
@@ -284,35 +253,22 @@ class Extractor:
             sequence_idx = pattern_sequence_idx % 1000
 
             # Filenames
-            filename_prefix = f"fov_{view_idx:03d}_pattern_{pattern_idx:03d}_seq_{sequence_idx:03d}"
-            frame_output_path = fov_dir / f"{filename_prefix}.npz"
-            json_output_path = fov_dir / f"{filename_prefix}.json"
+            filename_prefix = f"fov_{fov_idx:03d}_pattern_{pattern_idx:03d}_seq_{sequence_idx:03d}"
+            npy_output_path = fov_dir / f"{filename_prefix}.npy"
+            yaml_output_path = fov_dir / f"{filename_prefix}.yaml"
 
             try:
                 self._extract_frame_stack(
                     pattern_idx=pattern_idx,
                     start_frame=start_frame,
                     end_frame=end_frame,
-                    frame_output_path=frame_output_path,
-                    json_output_path=json_output_path,
+                    npy_output_path=npy_output_path,
+                    yaml_output_path=yaml_output_path,
                 )
-
-                # Add to extract summary
-                extract_data["valid_sequences"].append({
-                    "pattern": pattern_idx,
-                    "sequence": sequence_idx,
-                    "start_frame": start_frame,
-                    "end_frame": end_frame
-                })
 
             except Exception as e:
                 logger.warning(f"Error processing pattern {pattern_idx}: {e}")
                 continue
-
-        # Save extract summary
-        extract_summary_path = fov_dir / f"fov_{view_idx:03d}_extract.json"
-        with open(extract_summary_path, "w") as f:
-            json.dump(extract_data, f, indent=2)
 
     # Public Methods
 
@@ -323,34 +279,34 @@ class Extractor:
             output_dir = Path(self.output_folder)
             output_dir.mkdir(parents=True, exist_ok=True)
 
-            # Find all filter JSON files in FOV directories
-            json_files = sorted(list(Path(filter_results_dir).glob("fov_*/fov_*_filter.json")))
+            # Find all filter YAML files in FOV directories
+            yaml_files = sorted(list(Path(filter_results_dir).glob("fov_*/fov_*_filter.yaml")))
 
-            if not json_files:
+            if not yaml_files:
                 raise ValueError(
-                    f"No fov_*_filter.json files found in {filter_results_dir}"
+                    f"No fov_*_filter.yaml files found in {filter_results_dir}"
                 )
 
-            logger.info(f"Found {len(json_files)} filter files")
+            logger.info(f"Found {len(yaml_files)} filter files")
 
             # Process each filter file
-            for json_file in json_files:
+            for yaml_file in yaml_files:
                 try:
-                    with open(json_file, "r") as f:
-                        data = json.load(f)
+                    with open(yaml_file, "r") as f:
+                        data = yaml.safe_load(f)
                     filter_results = {
                         int(pattern_idx): frames
                         for pattern_idx, frames in data["filter_results"].items()
                     }
-                    # Extract view index from file path (fov_XXX_filter.json)
-                    view_idx = int(json_file.stem.split("_")[1])
-                    logger.info(f"Processing filter results for view {view_idx}")
+                    # Extract view index from file path (fov_XXX_filter.yaml)
+                    fov_idx = int(yaml_file.stem.split("_")[1])
+                    logger.info(f"Processing filter results for fov {fov_idx}")
                     self._process_filter_results(
-                        filter_results, view_idx, output_dir, min_frames, max_gap
+                        filter_results, fov_idx, output_dir, min_frames, max_gap
                     )
                 except Exception as e:
-                    logger.error(f"Error processing {json_file}: {e}")
-                    raise ValueError(f"Error processing {json_file}: {e}")
+                    logger.error(f"Error processing {yaml_file}: {e}")
+                    raise ValueError(f"Error processing {yaml_file}: {e}")
 
         except Exception as e:
             logger.error(f"Error during extraction: {e}")

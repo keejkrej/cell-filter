@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import logging
-from .crop import Cropper, CropperParameters
+from cell_filter.core.crop import Cropper, CropperParameters
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class Patterner:
                 cells_path,
                 CropperParameters(nuclei_channel=nuclei_channel),
             )
-            self.n_views = self.cropper.pattern_views
+            self.n_fovs = self.cropper.pattern_n_fovs
             logger.info(
                 f"Successfully initialized Patterner with patterns: {patterns_path} and cells: {cells_path}"
             )
@@ -79,11 +79,11 @@ class Patterner:
 
     # Public Methods
 
-    def plot_view(self, view_idx: int, output_path: str | None = None) -> None:
+    def plot_view(self, fov_idx: int, output_path: str | None = None) -> None:
         """Plot patterns image for a specific view with bounding boxes and indices."""
         try:
             # Load view and patterns
-            self.cropper.load_view(view_idx)
+            self.cropper.load_fov(fov_idx)
             self.cropper.load_patterns()
             self.cropper.process_patterns()
 
@@ -101,7 +101,7 @@ class Patterner:
             ax.imshow(annotated_image)
 
             # Set title
-            ax.set_title(f"View {view_idx} - Patterns with Bounding Boxes")
+            ax.set_title(f"FOV {fov_idx} - Patterns with Bounding Boxes")
 
             # Adjust layout
             plt.tight_layout()
@@ -114,8 +114,8 @@ class Patterner:
                 plt.show()
 
         except Exception as e:
-            logger.error(f"Error plotting view {view_idx}: {e}")
-            raise ValueError(f"Error plotting view {view_idx}: {e}")
+            logger.error(f"Error plotting fov {fov_idx}: {e}")
+            raise ValueError(f"Error plotting fov {fov_idx}: {e}")
         finally:
             plt.close()
 

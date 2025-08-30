@@ -3,7 +3,7 @@ Concise filtering script for cell-filter.
 """
 
 import os
-from cell_filter.core.filter import Filterer
+from cell_filter.filter import Filterer
 from cell_filter.utils.gpu_utils import validate_segmentation_requirements
 import logging
 
@@ -49,11 +49,11 @@ filter_processor = Filterer(
     nuclei_channel=NUCLEI_CHANNEL,
 )
 
-# Process views
+# Process fovs
 if ALL:
-    logger.info("Processing all views")
-    filter_processor.process_views(0, filter_processor.cropper.n_views)
+    logger.info("Processing all fovs")
+    filter_processor.process_fovs(0, filter_processor.cropper.n_fovs)
 else:
-    logger.info(f"Processing views {RANGE}")
-    view_range = list(map(int, RANGE.split(":")))
-    filter_processor.process_views(view_range[0], view_range[1])
+    logger.info(f"Processing fovs {RANGE}")
+    fov_range = list(map(int, RANGE.split(":")))
+    filter_processor.process_fovs(fov_range[0], fov_range[1])

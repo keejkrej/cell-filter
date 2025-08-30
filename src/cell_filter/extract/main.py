@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from cell_filter.core.extract import Extractor
+from cell_filter.extract import Extractor
 from cell_filter.utils.gpu_utils import validate_segmentation_requirements
 import logging
 

@@ -3,7 +3,7 @@ Concise extraction script for cell-filter.
 """
 
 import os
-from cell_filter.core.extract import Extractor
+from cell_filter.extract import Extractor
 from cell_filter.utils.gpu_utils import validate_segmentation_requirements
 import logging
 from pathlib import Path

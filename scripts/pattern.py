@@ -3,16 +3,15 @@ Concise pattern display script for cell-filter.
 """
 
 import os
-from cell_filter.core.pattern import Patterner
+from cell_filter.pattern import Patterner
 import logging
 
 # Define parameters here
 PATTERNS = "data/20250806_patterns_after.nd2"
 CELLS = "data/20250806_MDCK_timelapse_crop_fov0004.nd2"
-NUCLEI_CHANNEL = 1  # default in CLI
-VIEW = 0  # Only used if VIEW_ALL is False
-VIEW_ALL = False  # Set to False to use VIEW
-OUTPUT = None  # Only used if VIEW_ALL is False
+OUTPUT = "data/patterns"
+NUCLEI_CHANNEL = 1  # arbitrary, does not matter
+FOV = 0
 DEBUG = False
 
 # Configure logging
@@ -37,13 +36,8 @@ patterner = Patterner(
     nuclei_channel=NUCLEI_CHANNEL,
 )
 
-if VIEW_ALL:
-    logger.info("Displaying all views")
-    for view_idx in range(patterner.n_views):
-        logger.info(f"Displaying view {view_idx}")
-        patterner.plot_view(view_idx)
-else:
-    logger.info(f"Plotting view {VIEW}")
-    patterner.plot_view(VIEW, OUTPUT)
-    logger.info("Plotting completed successfully")
+logger.info(f"Plotting fov {FOV}")
+patterner.plot_view(FOV, OUTPUT)
+logger.info("Plotting completed successfully")
+
 patterner.close()
