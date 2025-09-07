@@ -1,6 +1,5 @@
 from argparse import ArgumentParser
 from cell_filter.extract import Extractor
-from cell_filter.utils.gpu_utils import validate_segmentation_requirements
 import logging
 
 
@@ -19,13 +18,6 @@ def main():
     # Configure logging
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(level=log_level, format="%(levelname)s - %(name)s - %(message)s")
-
-    # GPU validation (always required for segmentation)
-    try:
-        validate_segmentation_requirements(enable_segmentation=True)
-    except Exception as e:
-        logging.error(f"GPU validation failed: {e}")
-        return 1
 
     extractor = Extractor(
         patterns_path=args.patterns,

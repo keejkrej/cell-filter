@@ -13,9 +13,7 @@ class CellposeCounter:
 
     def __init__(self):
         """Initialize the Cellpose counter. GPU is always enabled."""
-        self.model = models.CellposeModel(
-            gpu=True,
-        )
+        self.model = models.CellposeModel(gpu=True)
 
     # Public Methods
 
@@ -26,9 +24,7 @@ class CellposeCounter:
             images = [images]
 
         # Run Cellpose on all images
-        masks_list = self.model.eval(
-            images,
-        )[0]
+        masks_list = self.model.eval(images)[0]
 
         # Count nuclei in each image
         counts = []

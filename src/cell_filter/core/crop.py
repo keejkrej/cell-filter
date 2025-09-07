@@ -8,7 +8,7 @@ import nd2
 from pathlib import Path
 from dataclasses import dataclass
 import logging
-from cell_filter.utils.nd2_utils import load_nd2_metadata, get_nd2_frame
+from cell_filter.utils import load_nd2, get_nd2_frame
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -58,14 +58,11 @@ class Cropper:
     def _init_patterns(self) -> None:
         """Initialize the patterns ND2 file reader and extract metadata."""
         try:
-            # Create xarray instance for lazy loading
-            self.patterns_xarr = nd2.imread(
-                str(self.patterns_path), xarray=True, dask=True
-            )
-            metadata = load_nd2_metadata(self.patterns_path)
-            self.pattern_n_channels = metadata["n_channels"]
-            self.pattern_n_frames = metadata["n_frames"]
-            self.pattern_n_fovs = metadata["n_fovs"]
+            # Load xarray and metadata using new API
+            self.patterns_xarr, metadata = load_nd2(self.patterns_path)
+            self.pattern_n_channels = metadata.n_channels
+            self.pattern_n_frames = metadata.n_frames
+            self.pattern_n_fovs = metadata.n_fovs
             logger.debug(
                 f"Channels: {self.pattern_n_channels}, Frames: {self.pattern_n_frames}, Views: {self.pattern_n_fovs}"
             )
@@ -76,16 +73,14 @@ class Cropper:
     def _init_cells(self) -> None:
         """Initialize the cells reader and metadata."""
         try:
-            # Create xarray instance for lazy loading
-            self.cells_xarr = nd2.imread(str(self.cells_path), xarray=True, dask=True)
+            # Load xarray and metadata using new API
+            self.cells_xarr, metadata = load_nd2(self.cells_path)
             self.dtype = self.cells_xarr.dtype
-            # Load metadata using utility function
-            metadata = load_nd2_metadata(self.cells_path)
-            self.cells_n_channels = metadata["n_channels"]
-            self.cells_n_frames = metadata["n_frames"]
-            self.cells_n_fovs = metadata["n_fovs"]
+            self.cells_n_channels = metadata.n_channels
+            self.cells_n_frames = metadata.n_frames
+            self.cells_n_fovs = metadata.n_fovs
             # Store channel names from metadata
-            self.cells_channel_names = metadata["channels"]
+            self.cells_channel_names = metadata.channels
 
             # Validate channel count consistency
             if len(self.cells_channel_names) != self.cells_n_channels:
@@ -324,7 +319,7 @@ class Cropper:
         try:
             # Extract the pattern frame using utility function
             # For patterns file, we select frame 0, channel 0, and the current view (P)
-            self.patterns = get_nd2_frame(self.current_fov, 0, 0, self.patterns_xarr)
+            self.patterns = get_nd2_frame(self.patterns_xarr, self.current_fov, 0, 0)
             logger.debug(f"Loaded patterns for view {self.current_fov}")
         except Exception as e:
             logger.error(f"Error loading patterns: {e}")
@@ -340,10 +335,10 @@ class Cropper:
             # Extract the nuclei frame using utility function
             # Select the specific frame, nuclei channel, and current view
             self.frame_nuclei = get_nd2_frame(
+                self.cells_xarr,
                 self.current_fov,
                 self.parameters.nuclei_channel,
                 frame_idx,
-                self.cells_xarr,
             )
             logger.debug(
                 f"Loaded nuclei frame {frame_idx} for view {self.current_fov} from channel {self.parameters.nuclei_channel}"
@@ -362,7 +357,7 @@ class Cropper:
             # Extract frames from all channels at once using channel=-1
             # Select the specific frame and current view
             self.frame_cell = get_nd2_frame(
-                self.current_fov, -1, frame_idx, self.cells_xarr
+                self.cells_xarr, self.current_fov, -1, frame_idx
             )
             logger.debug(
                 f"Loaded cell frames {frame_idx} for view {self.current_fov} from all channels at once"

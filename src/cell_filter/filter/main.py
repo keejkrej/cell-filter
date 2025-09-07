@@ -1,6 +1,5 @@
 from argparse import ArgumentParser
 from cell_filter.filter import Filterer
-from cell_filter.utils.gpu_utils import validate_segmentation_requirements
 import logging
 
 
@@ -22,12 +21,6 @@ def main():
         level=log_level, format="%(levelname)s - %(name)s - %(message)s"
     )
 
-    # GPU validation (always required)
-    try:
-        validate_segmentation_requirements(enable_segmentation=True)
-    except Exception as e:
-        logging.error(f"GPU validation failed: {e}")
-        return 1
     filter_processor = Filterer(
         patterns_path=args.patterns,
         cells_path=args.cells,

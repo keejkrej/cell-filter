@@ -5,8 +5,7 @@ Core extractor functionality for cell-filter.
 import yaml
 from pathlib import Path
 import numpy as np
-from cell_filter.core.crop import Cropper, CropperParameters
-from cell_filter.core.segmentation import CellposeSegmenter
+from cell_filter.core import Cropper, CropperParameters, CellposeSegmenter
 import logging
 
 # Configure logging

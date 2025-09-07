@@ -4,7 +4,6 @@ Concise extraction script for cell-filter.
 
 import os
 from cell_filter.extract import Extractor
-from cell_filter.utils.gpu_utils import validate_segmentation_requirements
 import logging
 from pathlib import Path
 
@@ -41,14 +40,6 @@ if not os.path.exists(FILTER_RESULTS):
 # Create output directory if it doesn't exist
 output_dir = Path(OUTPUT)
 output_dir.mkdir(parents=True, exist_ok=True)
-
-# GPU validation (always required for segmentation)
-try:
-    validate_segmentation_requirements(enable_segmentation=True)
-    logger.info("GPU validation successful for segmentation")
-except Exception as e:
-    logger.error(f"GPU validation failed: {e}")
-    exit(1)
 
 # Initialize extractor
 extractor = Extractor(

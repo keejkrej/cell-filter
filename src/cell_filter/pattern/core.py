@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import logging
-from cell_filter.core.crop import Cropper, CropperParameters
+from cell_filter.core import Cropper, CropperParameters
 
 # Configure logging
 logger = logging.getLogger(__name__)

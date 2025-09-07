@@ -4,7 +4,6 @@ Concise filtering script for cell-filter.
 
 import os
 from cell_filter.filter import Filterer
-from cell_filter.utils.gpu_utils import validate_segmentation_requirements
 import logging
 
 # Define parameters here
@@ -30,14 +29,6 @@ if not os.path.exists(PATTERNS):
 # Check if cells file exists
 if not os.path.exists(CELLS):
     logger.error(f"Error: Cells file not found: {CELLS}")
-    exit(1)
-
-# GPU validation (always required)
-try:
-    validate_segmentation_requirements(enable_segmentation=True)
-    logger.info("GPU validation successful for filtering")
-except Exception as e:
-    logger.error(f"GPU validation failed: {e}")
     exit(1)
 
 # Initialize filterer
