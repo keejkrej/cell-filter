@@ -13,7 +13,7 @@ NUCLEI_CHANNEL = 1
 OUTPUT = "data/analysis/"
 N_CELLS = 4
 ALL = False  # Set to False to use RANGE
-RANGE = "0:1"  # Only used if ALL is False, end is exclusive
+RANGE = "0:1"  # Only used if ALL is False, end is inclusive
 DEBUG = False
 
 # Configure logging
@@ -43,7 +43,7 @@ filter_processor = Filterer(
 # Process fovs
 if ALL:
     logger.info("Processing all fovs")
-    filter_processor.process_fovs(0, filter_processor.cropper.n_fovs)
+    filter_processor.process_fovs(0, filter_processor.cropper.n_fovs - 1)
 else:
     logger.info(f"Processing fovs {RANGE}")
     fov_range = list(map(int, RANGE.split(":")))

@@ -29,7 +29,7 @@ def main():
         nuclei_channel=args.nuclei_channel,
     )
     if args.all:
-        filter_processor.process_fovs(0, filter_processor.cropper.n_fovs)
+        filter_processor.process_fovs(0, filter_processor.cropper.n_fovs - 1)
     else:
         fov_range = list(map(int, args.range.split(":")))
         filter_processor.process_fovs(fov_range[0], fov_range[1])
