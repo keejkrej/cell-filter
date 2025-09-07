@@ -230,16 +230,16 @@ class Filterer:
         Process a range of views sequentially.
 
         Args:
-            view_range (list[int]): list of view indices to process
-            end_view (int): Ending view index (exclusive)
+            start_fov (int): Starting view index (inclusive)
+            end_fov (int): Ending view index (inclusive)
 
         Raises:
             ValueError: If view range is invalid
         """
-        print("start_view", start_fov)
-        print("end_view", end_fov)
-        print("n_views", self.cropper.n_fovs)
-        if start_fov < 0 or end_fov > self.cropper.n_fovs or start_fov > end_fov:
+        print("start_fov", start_fov)
+        print("end_fov", end_fov)
+        print("n_fovs", self.cropper.n_fovs)
+        if start_fov < 0 or end_fov >= self.cropper.n_fovs or start_fov > end_fov:
             raise ValueError(
                 f"Invalid view range: {start_fov} to {end_fov} (total views: {self.cropper.n_fovs})"
             )
@@ -277,7 +277,7 @@ class Filterer:
             f"Starting sequential processing for views {start_fov} to {end_fov}"
         )
 
-        for fov_idx in range(start_fov, end_fov):
+        for fov_idx in range(start_fov, end_fov+1):
             # Skip if already processed
             if fov_idx in processed_views_set:
                 logger.info(f"Skipping already processed fov {fov_idx}")

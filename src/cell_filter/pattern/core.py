@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import logging
+from pathlib import Path
 from cell_filter.core import Cropper, CropperParameters
 
 # Configure logging
@@ -108,7 +109,7 @@ class Patterner:
 
             # Save or show plot
             if output_path:
-                plt.savefig(output_path)
+                plt.savefig(Path(output_path) / f"fov_{fov_idx:03d}.png")
                 logger.info(f"Saved plot to {output_path}")
             else:
                 plt.show()

@@ -80,5 +80,12 @@ def load_nd2(nd2_path: Path) -> tuple[xr.DataArray, ND2Metadata]:
         raise RuntimeError(f"Failed to load ND2: {str(e)}")
 
 
-def get_nd2_frame(da: xr.DataArray, fov: int, channel: int, frame: int) -> np.ndarray:
-    return da.isel(P=fov, C=channel, T=frame).compute().values
+def get_nd2_frame(da: xr.DataArray, f: int, c: int, t: int) -> np.ndarray:
+    indexers = {}
+    if "P" in da.dims:
+        indexers["P"] = f
+    if "C" in da.dims:
+        indexers["C"] = c
+    if "T" in da.dims:
+        indexers["T"] = t
+    return da.isel(**indexers).compute().values
