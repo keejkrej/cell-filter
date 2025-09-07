@@ -75,12 +75,13 @@ python -m cell_filter.pattern --patterns data/patterns.nd2 --cells data/cells_ti
 
 ```bash
 python -m cell_filter.filter --patterns data/patterns.nd2 --cells data/cells_timelapse.nd2 --nuclei-channel 1 --n-cells 4 --output data/analysis/ --all
+python -m cell_filter.filter --patterns data/patterns.nd2 --cells data/cells_timelapse.nd2 --nuclei-channel 1 --n-cells 4 --output data/analysis/ --range 0:5
 ```
 
 #### Step 3: Extract Time-Series for Qualifying Patterns
 
 ```bash
-python -m cell_filter.extract --patterns data/patterns.nd2 --cells data/cells_timelapse.nd2 --filter-results data/analysis/ --output data/analysis/ --min-frames 20
+python -m cell_filter.extract --patterns data/patterns.nd2 --cells data/cells_timelapse.nd2 --filter-results data/analysis/ --output data/analysis/ --min-frames 20 --max-gap 6
 ```
 
 ## Usage
