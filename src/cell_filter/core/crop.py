@@ -4,11 +4,10 @@ Core cell cropper functionality for cell-filter.
 
 import cv2
 import numpy as np
-import nd2
 from pathlib import Path
 from dataclasses import dataclass
 import logging
-from cell_filter.utils import load_nd2, get_nd2_frame
+from cell_filter.utils import load_nd2, get_nd2_frame, get_nd2_channel_stack
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -308,9 +307,7 @@ class Cropper:
     def load_fov(self, fov_idx: int) -> None:
         """Load a specific view from the ND2 files."""
         if fov_idx >= self.n_fovs or fov_idx < 0:
-            raise ValueError(
-                f"View index {fov_idx} out of range (0-{self.n_fovs - 1})"
-            )
+            raise ValueError(f"View index {fov_idx} out of range (0-{self.n_fovs - 1})")
         self.current_fov = fov_idx
         logger.debug(f"Loaded view {fov_idx}")
 
@@ -354,10 +351,10 @@ class Cropper:
                 f"Frame index {frame_idx} out of range (0-{self.n_frames - 1})"
             )
         try:
-            # Extract frames from all channels at once using channel=-1
+            # Extract frames from all channels at once
             # Select the specific frame and current view
-            self.frame_cell = get_nd2_frame(
-                self.cells_xarr, self.current_fov, -1, frame_idx
+            self.frame_cell = get_nd2_channel_stack(
+                self.cells_xarr, self.current_fov, frame_idx
             )
             logger.debug(
                 f"Loaded cell frames {frame_idx} for view {self.current_fov} from all channels at once"
