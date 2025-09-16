@@ -79,7 +79,7 @@ class Cropper:
             self.cells_n_frames = metadata.n_frames
             self.cells_n_fovs = metadata.n_fovs
             # Store channel names from metadata
-            self.cells_channel_names = metadata.channels
+            self.cells_channel_names = metadata.channel_names
 
             # Validate channel count consistency
             if len(self.cells_channel_names) != self.cells_n_channels:
