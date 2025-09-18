@@ -113,7 +113,7 @@ class Filterer:
 
     # Private Methods
 
-    def _process_frame(self, frame_idx: int) -> None:
+    def _process_frame(self, frame_idx: int, min_size: int = 15) -> None:
         """Process a single frame and update pattern tracking."""
         try:
             # Load current frame
@@ -139,14 +139,14 @@ class Filterer:
 
             # Count nuclei for all patterns in this frame
             try:
-                counts = self.counter.count_nuclei(nuclei_list)
+                counts = self.counter.count_nuclei(nuclei_list, min_size=min_size)
             except Exception as e:
                 logger.error(f"Error counting nuclei in frame {frame_idx}: {e}")
                 return
 
             # Track changes for this frame
             saved_patterns = []
-            dropped_many = []
+            # dropped_many = []
             dropped_zero = []
 
             # Update pattern tracking based on counts
@@ -157,9 +157,9 @@ class Filterer:
                     logger.debug(
                         f"Pattern {pattern_idx} has {self.n_cells} nuclei in frame {frame_idx}"
                     )
-                elif n_count > self.n_cells:
-                    self.patterns.drop_many(pattern_idx)
-                    dropped_many.append(pattern_idx)
+                # elif n_count > self.n_cells:
+                #     self.patterns.drop_many(pattern_idx)
+                #     dropped_many.append(pattern_idx)
                 elif n_count == 0:
                     self.patterns.drop_zero(pattern_idx)
                     dropped_zero.append(pattern_idx)
@@ -169,10 +169,10 @@ class Filterer:
                 logger.debug(
                     f"Frame {frame_idx}: Patterns with {self.n_cells} nuclei: {saved_patterns}"
                 )
-            if dropped_many:
-                logger.debug(
-                    f"Frame {frame_idx}: Dropped patterns (too many nuclei): {dropped_many}"
-                )
+            # if dropped_many:
+            #     logger.debug(
+            #         f"Frame {frame_idx}: Dropped patterns (too many nuclei): {dropped_many}"
+            #     )
             if dropped_zero:
                 logger.debug(
                     f"Frame {frame_idx}: Dropped patterns (no nuclei): {dropped_zero}"
@@ -187,7 +187,7 @@ class Filterer:
 
     # Public Methods
 
-    def filter_frames(self, fov_idx: int) -> dict:
+    def filter_frames(self, fov_idx: int, min_size: int = 15) -> dict:
         """Filter frame data and track nuclei counts for a single view."""
         logger.info(f"Starting frame filtering for fov {fov_idx}")
 
@@ -201,7 +201,7 @@ class Filterer:
             # Process each frame
             for frame_idx in range(self.cropper.n_frames):
                 logger.info(f"Processing frame {frame_idx}/{self.cropper.n_frames}")
-                self._process_frame(frame_idx)
+                self._process_frame(frame_idx, min_size=min_size)
 
             # Build results
             results = {"filter_results": self.patterns.get_valid_patterns()}
@@ -225,7 +225,7 @@ class Filterer:
             logger.error(f"Error in frame filtering: {e}")
             raise ValueError(f"Error in frame filtering: {e}")
 
-    def process_fovs(self, start_fov: int, end_fov: int) -> None:
+    def process_fovs(self, start_fov: int, end_fov: int, min_size: int = 15) -> None:
         """
         Process a range of views sequentially.
 
@@ -260,7 +260,9 @@ class Filterer:
                 with open(tracking_file, "r") as f:
                     raw = yaml.safe_load(f) or []
                 if not isinstance(raw, list):
-                    raise ValueError("processed_views.yaml must be a list of {fov, datetime} records")
+                    raise ValueError(
+                        "processed_views.yaml must be a list of {fov, datetime} records"
+                    )
                 for item in raw:
                     try:
                         fov = int(item["fov"])
@@ -269,7 +271,9 @@ class Filterer:
                         processed_views_set.add(fov)
                     except Exception:
                         logger.warning(f"Skipping invalid processed view entry: {item}")
-                logger.debug(f"Found {len(processed_views_list)} previously processed views")
+                logger.debug(
+                    f"Found {len(processed_views_list)} previously processed views"
+                )
             except Exception as e:
                 logger.warning(f"Error reading tracking file: {e}")
 
@@ -277,7 +281,7 @@ class Filterer:
             f"Starting sequential processing for views {start_fov} to {end_fov}"
         )
 
-        for fov_idx in range(start_fov, end_fov+1):
+        for fov_idx in range(start_fov, end_fov + 1):
             # Skip if already processed
             if fov_idx in processed_views_set:
                 logger.info(f"Skipping already processed fov {fov_idx}")
@@ -286,14 +290,18 @@ class Filterer:
             try:
                 # Process the view
                 time_start = time.time()
-                results = self.filter_frames(fov_idx)
+                results = self.filter_frames(fov_idx, min_size=min_size)
                 time_end = time.time()
                 logger.info(
                     f"Time taken to process fov {fov_idx}: {time_end - time_start} seconds"
                 )
 
                 # Save results immediately
-                view_output_path = output_path / f"fov_{fov_idx:03d}" / f"fov_{fov_idx:03d}_filter.yaml"
+                view_output_path = (
+                    output_path
+                    / f"fov_{fov_idx:03d}"
+                    / f"fov_{fov_idx:03d}_filter.yaml"
+                )
                 view_output_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(view_output_path, "w") as f:
                     yaml.safe_dump(results, f, sort_keys=False)

@@ -17,14 +17,16 @@ class CellposeCounter:
 
     # Public Methods
 
-    def count_nuclei(self, images: np.ndarray | list[np.ndarray]) -> list[int]:
+    def count_nuclei(
+        self, images: np.ndarray | list[np.ndarray], min_size: int = 15
+    ) -> list[int]:
         """Count nuclei in one or more images using Cellpose."""
         # Convert single image to list
         if isinstance(images, np.ndarray):
             images = [images]
 
         # Run Cellpose on all images
-        masks_list = self.model.eval(images)[0]
+        masks_list = self.model.eval(images, min_size=min_size)[0]
 
         # Count nuclei in each image
         counts = []
